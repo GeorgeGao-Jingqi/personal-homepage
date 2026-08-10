@@ -1,0 +1,154 @@
+{
+  "zh": {
+    "name": "你的名字",
+    "role": "数据分析师 / 业务洞察探索者",
+    "tagline": "我把复杂数据整理成清晰判断，也把职业成长写成可以被看见的证据。",
+    "intro": "这个页面是简历之外的补充：你可以快速了解我的成长背景、分析方法、项目成果，以及我如何把数据问题转化为业务行动。",
+    "storyTitle": "成长故事",
+    "story": "我进入数据分析，是从持续追问“为什么这个结果会发生”开始的。相比只交付报表，我更在意问题被重新定义、指标被正确解释、结论能被团队采用。过去的学习和项目让我逐渐形成一套习惯：先理解业务场景，再拆解数据口径，最后用清晰表达推动决策。",
+    "projectsTitle": "项目成果",
+    "skillsTitle": "技能工具",
+    "experienceTitle": "经历亮点",
+    "contactTitle": "联系我",
+    "aiTitle": "和我的 AI 助手聊聊",
+    "aiIntro": "你可以问它关于我的成长背景、项目经历、技能工具或求职方向的问题。",
+    "projects": [
+      {
+        "title": "用户行为分析项目",
+        "problem": "业务需要理解新用户为什么在关键步骤流失。",
+        "approach": "通过漏斗分析、分群对比和 SQL 数据校验定位异常环节。",
+        "impact": "形成可执行优化建议，帮助团队聚焦高影响改进点。",
+        "tools": "SQL / Python / Tableau"
+      },
+      {
+        "title": "经营指标看板",
+        "problem": "团队对核心指标口径不一致，周会讨论成本较高。",
+        "approach": "梳理指标定义，建立可复用数据视图，并设计分层看板。",
+        "impact": "让业务、产品和运营能围绕同一套事实进行讨论。",
+        "tools": "BI / Excel / 数据建模"
+      }
+    ],
+    "skills": [
+      {
+        "title": "数据处理",
+        "items": "SQL 查询、数据清洗、口径核对、异常排查"
+      },
+      {
+        "title": "分析方法",
+        "items": "漏斗分析、留存分析、分群分析、A/B 实验理解"
+      },
+      {
+        "title": "可视化表达",
+        "items": "仪表盘设计、图表叙事、结论汇报、业务复盘"
+      },
+      {
+        "title": "工具栈",
+        "items": "Python、Excel、Tableau/Power BI、基础统计"
+      }
+    ],
+    "experience": [
+      {
+        "title": "从问题意识出发",
+        "detail": "习惯先把业务问题问清楚，再决定数据怎么取、指标怎么拆。"
+      },
+      {
+        "title": "重视可解释结论",
+        "detail": "不只给数字，也说明限制条件、数据口径和下一步建议。"
+      },
+      {
+        "title": "持续补齐技术栈",
+        "detail": "用项目驱动学习，把 SQL、Python、统计和可视化连接到真实场景。"
+      }
+    ],
+    "contacts": [
+      {
+        "label": "Email",
+        "value": "your.email@example.com"
+      },
+      {
+        "label": "LinkedIn",
+        "value": "https://linkedin.com/in/your-profile"
+      },
+      {
+        "label": "GitHub",
+        "value": "https://github.com/your-name"
+      }
+    ]
+  },
+  "en": {
+    "name": "Your Name",
+    "role": "Data Analyst / Business Insight Explorer",
+    "tagline": "I turn complex data into clear judgment, and make my growth visible beyond a traditional resume.",
+    "intro": "This page complements my resume with context: my growth story, analytical habits, selected projects, and how I translate data questions into business action.",
+    "storyTitle": "Growth Story",
+    "story": "My path into data analytics started with a habit of asking why a result happened. I care about more than producing dashboards: I want to define the right problem, clarify metrics, and communicate findings that a team can actually use. Through learning and project work, I have built a practical workflow: understand the business context, validate the data, then turn analysis into decisions.",
+    "projectsTitle": "Selected Projects",
+    "skillsTitle": "Skills & Tools",
+    "experienceTitle": "Highlights",
+    "contactTitle": "Contact",
+    "aiTitle": "Chat With My AI Assistant",
+    "aiIntro": "Ask about my growth story, projects, skills, or career direction.",
+    "projects": [
+      {
+        "title": "User Behavior Analysis",
+        "problem": "The team needed to understand why new users dropped off during a key flow.",
+        "approach": "Used funnel analysis, cohort comparisons, and SQL validation to locate friction points.",
+        "impact": "Produced actionable recommendations that helped the team focus on high-impact improvements.",
+        "tools": "SQL / Python / Tableau"
+      },
+      {
+        "title": "Business Metrics Dashboard",
+        "problem": "Teams used inconsistent definitions for core metrics, slowing weekly discussions.",
+        "approach": "Clarified metric definitions, built reusable data views, and designed a layered dashboard.",
+        "impact": "Helped product, operations, and business teams discuss performance from the same facts.",
+        "tools": "BI / Excel / Data Modeling"
+      }
+    ],
+    "skills": [
+      {
+        "title": "Data Handling",
+        "items": "SQL queries, data cleaning, metric validation, anomaly checks"
+      },
+      {
+        "title": "Analysis Methods",
+        "items": "Funnel analysis, retention, segmentation, A/B testing literacy"
+      },
+      {
+        "title": "Visualization",
+        "items": "Dashboard design, chart storytelling, reporting, business reviews"
+      },
+      {
+        "title": "Tools",
+        "items": "Python, Excel, Tableau/Power BI, basic statistics"
+      }
+    ],
+    "experience": [
+      {
+        "title": "Problem-first thinking",
+        "detail": "I clarify the business question before deciding what data to pull or how to segment it."
+      },
+      {
+        "title": "Explainable conclusions",
+        "detail": "I share not only numbers, but also metric definitions, limitations, and recommended next steps."
+      },
+      {
+        "title": "Project-driven learning",
+        "detail": "I connect SQL, Python, statistics, and visualization skills through practical projects."
+      }
+    ],
+    "contacts": [
+      {
+        "label": "Email",
+        "value": "your.email@example.com"
+      },
+      {
+        "label": "LinkedIn",
+        "value": "https://linkedin.com/in/your-profile"
+      },
+      {
+        "label": "GitHub",
+        "value": "https://github.com/your-name"
+      }
+    ]
+  }
+}
