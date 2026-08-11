@@ -1,34 +1,70 @@
-import { StrictMode, useEffect, useMemo, useState } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import heroWorkspace from "../assets/hero-workspace.png";
 import defaultContentData from "./content.json";
+import {
+  ContactSection,
+  ExperienceSection,
+  HeroSection,
+  ProjectsSection,
+  SkillsSection,
+  StorySection,
+} from "./components/ProfileSections";
+import { ChatPanel } from "./components/ChatPanel";
 import "./styles.css";
-import type { Contact, Content, Experience, Language, ProfileContent, Project, SkillGroup } from "./types";
-
-type ChatMessage = {
-  role: "assistant" | "user";
-  text: string;
-};
+import type {
+  ChatMessage,
+  Content,
+  EditableListKey,
+  Language,
+  ProfileContent,
+  ProfileTextField,
+} from "./types";
 
 type SaveState = "idle" | "saving" | "saved" | "browser-fallback" | "error";
 
 const STORAGE_KEY = "resume-homepage-content-draft-v1";
 const defaultContent = defaultContentData as Content;
 
+function isProfileShape(value: unknown): value is ProfileContent {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<ProfileContent>;
+  return Boolean(
+    typeof candidate.name === "string" &&
+      typeof candidate.role === "string" &&
+      typeof candidate.tagline === "string" &&
+      typeof candidate.intro === "string" &&
+      typeof candidate.heroNote === "string" &&
+      typeof candidate.storyAside === "string" &&
+      typeof candidate.projectsIntro === "string" &&
+      typeof candidate.skillsIntro === "string" &&
+      typeof candidate.experienceNote === "string" &&
+      typeof candidate.contactLead === "string" &&
+      Array.isArray(candidate.metrics) &&
+      Array.isArray(candidate.projects) &&
+      Array.isArray(candidate.skills) &&
+      Array.isArray(candidate.experience) &&
+      Array.isArray(candidate.contacts),
+  );
+}
+
+function hasProfileShape(content: unknown): content is Content {
+  if (!content || typeof content !== "object") return false;
+
+  const candidate = content as Partial<Content>;
+  return isProfileShape(candidate.zh) && isProfileShape(candidate.en);
+}
+
 function getInitialContent(isEditMode: boolean): Content {
   if (!isEditMode) return defaultContent;
 
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? (JSON.parse(saved) as Content) : defaultContent;
+    const parsed = saved ? (JSON.parse(saved) as unknown) : null;
+    return hasProfileShape(parsed) ? parsed : defaultContent;
   } catch {
     return defaultContent;
   }
-}
-
-function hasProfileShape(content: unknown): content is Content {
-  const candidate = content as Partial<Content>;
-  return Boolean(candidate?.zh?.projects && candidate?.en?.projects && candidate.zh.contacts && candidate.en.contacts);
 }
 
 async function fetchFileContent(): Promise<Content | null> {
@@ -61,7 +97,7 @@ function getAiReply(input: string, profile: ProfileContent, language: Language):
   if (text.includes("技能") || text.includes("工具") || text.includes("skill") || text.includes("tool")) {
     return isChinese
       ? `我的技能主要集中在 ${profile.skills.map((skill) => skill.title).join("、")}。如果你是招聘方，我建议重点看项目卡里的“问题-方法-影响”，那里更能说明这些工具如何被使用。`
-      : `My skills are mainly around ${profile.skills.map((skill) => skill.title).join(", ")}. If you are reviewing me as a candidate, the project cards show how those tools are used in context.`;
+      : `My skills are mainly around ${profile.skills.map((skill) => skill.title).join(", ")}. The project cards show how those tools are used in context.`;
   }
 
   if (text.includes("成长") || text.includes("背景") || text.includes("story") || text.includes("background")) {
@@ -80,6 +116,12 @@ function getAiReply(input: string, profile: ProfileContent, language: Language):
     : `I can talk about ${profile.name}'s growth story, analytics projects, skills, and career direction. Try asking: "Which project best shows your analytical ability?"`;
 }
 
+function getAssistantGreeting(language: Language): string {
+  return language === "zh"
+    ? "你好，我可以帮你了解这个候选人的成长背景、项目成果和技能工具。"
+    : "Hello, I can introduce this candidate's growth story, projects, and analytics toolkit.";
+}
+
 function App() {
   const isEditMode = useMemo(() => new URLSearchParams(window.location.search).get("edit") === "1", []);
   const [content, setContent] = useState<Content>(() => getInitialContent(isEditMode));
@@ -87,10 +129,11 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [input, setInput] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      text: "你好，我可以帮你了解这个候选人的成长背景、项目成果和技能工具。",
+      text: getAssistantGreeting("zh"),
     },
   ]);
 
@@ -112,7 +155,7 @@ function App() {
       });
   }, [isEditMode]);
 
-  async function saveContent(next: Content) {
+  function saveContent(next: Content) {
     setContent(next);
 
     if (!isEditMode) return;
@@ -120,15 +163,18 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setSaveState("saving");
 
-    try {
-      const didSaveToFile = await persistFileContent(next);
-      setSaveState(didSaveToFile ? "saved" : "browser-fallback");
-    } catch {
-      setSaveState("browser-fallback");
-    }
+    saveQueue.current = saveQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        const didSaveToFile = await persistFileContent(next);
+        setSaveState(didSaveToFile ? "saved" : "browser-fallback");
+      })
+      .catch(() => {
+        setSaveState("browser-fallback");
+      });
   }
 
-  function updateField(field: keyof ProfileContent, value: string) {
+  function updateField(field: ProfileTextField, value: string) {
     void saveContent({
       ...content,
       [language]: {
@@ -138,20 +184,30 @@ function App() {
     });
   }
 
-  function updateList<T extends Project | SkillGroup | Experience | Contact>(
-    key: "projects" | "skills" | "experience" | "contacts",
-    index: number,
-    field: keyof T,
-    value: string,
-  ) {
-    const nextItems = [...(profile[key] as T[])];
-    nextItems[index] = { ...nextItems[index], [field]: value };
+  function updateList(key: EditableListKey, index: number, field: string, value: string) {
+    const nextProfile = { ...profile };
+
+    switch (key) {
+      case "metrics":
+        nextProfile.metrics = profile.metrics.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        break;
+      case "projects":
+        nextProfile.projects = profile.projects.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        break;
+      case "skills":
+        nextProfile.skills = profile.skills.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        break;
+      case "experience":
+        nextProfile.experience = profile.experience.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        break;
+      case "contacts":
+        nextProfile.contacts = profile.contacts.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        break;
+    }
+
     void saveContent({
       ...content,
-      [language]: {
-        ...profile,
-        [key]: nextItems,
-      },
+      [language]: nextProfile,
     });
   }
 
@@ -163,6 +219,7 @@ function App() {
   function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed) return;
+
     const reply = getAiReply(trimmed, profile, language);
     setMessages((current) => [
       ...current,
@@ -172,20 +229,27 @@ function App() {
     setInput("");
   }
 
+  function toggleLanguage() {
+    const nextLanguage = language === "zh" ? "en" : "zh";
+    setLanguage(nextLanguage);
+    setMessages((current) => (current.length === 1 ? [{ role: "assistant", text: getAssistantGreeting(nextLanguage) }] : current));
+  }
+
   return (
     <main>
       <header className="topbar">
         <a className="brand" href="#home">
-          {profile.name}
+          <span className="brand-mark" aria-hidden="true">GG</span>
+          <span>{profile.name}</span>
         </a>
         <nav aria-label={language === "zh" ? "页面导航" : "Page navigation"}>
           <a href="#story">{language === "zh" ? "成长" : "Story"}</a>
           <a href="#projects">{language === "zh" ? "项目" : "Projects"}</a>
-          <a href="#skills">{language === "zh" ? "技能" : "Skills"}</a>
+          <a href="#skills">{language === "zh" ? "流程" : "Workflow"}</a>
           <a href="#contact">{language === "zh" ? "联系" : "Contact"}</a>
         </nav>
-        <button className="language-toggle" type="button" onClick={() => setLanguage(language === "zh" ? "en" : "zh")}>
-          {language === "zh" ? "EN" : "中文"}
+        <button className="language-toggle" type="button" onClick={toggleLanguage} aria-label={language === "zh" ? "切换到英文" : "Switch to Chinese"}>
+          {language === "zh" ? "EN" : "中"}
         </button>
       </header>
 
@@ -198,137 +262,37 @@ function App() {
         </aside>
       )}
 
-      <section className="hero" id="home">
-        <div className="hero-copy">
-          <EditableText value={profile.role} onChange={(value) => updateField("role", value)} editable={isEditMode} className="eyebrow" />
-          <EditableText value={profile.name} onChange={(value) => updateField("name", value)} editable={isEditMode} as="h1" />
-          <EditableText value={profile.tagline} onChange={(value) => updateField("tagline", value)} editable={isEditMode} as="p" className="tagline" multiline />
-          <EditableText value={profile.intro} onChange={(value) => updateField("intro", value)} editable={isEditMode} as="p" className="intro" multiline />
-          <div className="hero-actions">
-            <a className="primary-link" href="#projects">
-              {language === "zh" ? "查看项目成果" : "View Projects"}
-            </a>
-            <button className="secondary-link" type="button" onClick={() => setIsChatOpen(true)}>
-              {language === "zh" ? "打开 AI 对话" : "Open AI Chat"}
-            </button>
-          </div>
-        </div>
-        <img className="hero-image" src={heroWorkspace} alt="" />
-      </section>
-
-      <section className="section story" id="story">
-        <SectionHeader
-          title={profile.storyTitle}
-          editable={isEditMode}
-          onChange={(value) => updateField("storyTitle", value)}
-        />
-        <EditableText value={profile.story} onChange={(value) => updateField("story", value)} editable={isEditMode} as="p" multiline className="story-text" />
-      </section>
-
-      <section className="section" id="projects">
-        <SectionHeader
-          title={profile.projectsTitle}
-          editable={isEditMode}
-          onChange={(value) => updateField("projectsTitle", value)}
-        />
-        <div className="project-grid">
-          {profile.projects.map((project, index) => (
-            <article className="project-card" key={`${project.title}-${index}`}>
-              <EditableText value={project.title} onChange={(value) => updateList<Project>("projects", index, "title", value)} editable={isEditMode} as="h3" />
-              <Field label={language === "zh" ? "问题" : "Problem"} value={project.problem} editable={isEditMode} onChange={(value) => updateList<Project>("projects", index, "problem", value)} />
-              <Field label={language === "zh" ? "方法" : "Approach"} value={project.approach} editable={isEditMode} onChange={(value) => updateList<Project>("projects", index, "approach", value)} />
-              <Field label={language === "zh" ? "影响" : "Impact"} value={project.impact} editable={isEditMode} onChange={(value) => updateList<Project>("projects", index, "impact", value)} />
-              <EditableText value={project.tools} onChange={(value) => updateList<Project>("projects", index, "tools", value)} editable={isEditMode} className="tool-pill" />
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section" id="skills">
-        <SectionHeader
-          title={profile.skillsTitle}
-          editable={isEditMode}
-          onChange={(value) => updateField("skillsTitle", value)}
-        />
-        <div className="skills-grid">
-          {profile.skills.map((skill, index) => (
-            <article className="skill-card" key={`${skill.title}-${index}`}>
-              <EditableText value={skill.title} onChange={(value) => updateList<SkillGroup>("skills", index, "title", value)} editable={isEditMode} as="h3" />
-              <EditableText value={skill.items} onChange={(value) => updateList<SkillGroup>("skills", index, "items", value)} editable={isEditMode} as="p" multiline />
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section experience-section">
-        <SectionHeader
-          title={profile.experienceTitle}
-          editable={isEditMode}
-          onChange={(value) => updateField("experienceTitle", value)}
-        />
-        <div className="timeline">
-          {profile.experience.map((item, index) => (
-            <article className="timeline-item" key={`${item.title}-${index}`}>
-              <EditableText value={item.title} onChange={(value) => updateList<Experience>("experience", index, "title", value)} editable={isEditMode} as="h3" />
-              <EditableText value={item.detail} onChange={(value) => updateList<Experience>("experience", index, "detail", value)} editable={isEditMode} as="p" multiline />
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section contact" id="contact">
-        <SectionHeader
-          title={profile.contactTitle}
-          editable={isEditMode}
-          onChange={(value) => updateField("contactTitle", value)}
-        />
-        <div className="contact-links">
-          {profile.contacts.map((contact, index) => (
-            <div className="contact-item" key={`${contact.label}-${index}`}>
-              <EditableText value={contact.label} onChange={(value) => updateList<Contact>("contacts", index, "label", value)} editable={isEditMode} className="contact-label" />
-              <EditableText value={contact.value} onChange={(value) => updateList<Contact>("contacts", index, "value", value)} editable={isEditMode} className="contact-value" />
-            </div>
-          ))}
-        </div>
-      </section>
+      <HeroSection
+        profile={profile}
+        language={language}
+        editable={isEditMode}
+        onFieldChange={updateField}
+        onListChange={updateList}
+        onOpenChat={() => setIsChatOpen(true)}
+      />
+      <StorySection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
+      <ProjectsSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
+      <SkillsSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
+      <ExperienceSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
+      <ContactSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
 
       <button className="chat-launcher" type="button" onClick={() => setIsChatOpen(true)} aria-label={profile.aiTitle}>
-        AI
+        <span aria-hidden="true">AI</span>
       </button>
 
       {isChatOpen && (
-        <section className="chat-panel" aria-label={profile.aiTitle}>
-          <div className="chat-header">
-            <div>
-              <EditableText value={profile.aiTitle} onChange={(value) => updateField("aiTitle", value)} editable={isEditMode} as="h2" />
-              <EditableText value={profile.aiIntro} onChange={(value) => updateField("aiIntro", value)} editable={isEditMode} as="p" multiline />
-            </div>
-            <button type="button" onClick={() => setIsChatOpen(false)} aria-label={language === "zh" ? "关闭聊天" : "Close chat"}>
-              x
-            </button>
-          </div>
-          <div className="chat-messages">
-            {messages.map((message, index) => (
-              <p className={`message ${message.role}`} key={`${message.role}-${index}`}>
-                {message.text}
-              </p>
-            ))}
-          </div>
-          <form
-            className="chat-input"
-            onSubmit={(event) => {
-              event.preventDefault();
-              sendMessage();
-            }}
-          >
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder={language === "zh" ? "问问我的成长背景或项目..." : "Ask about my story or projects..."}
-            />
-            <button type="submit">{language === "zh" ? "发送" : "Send"}</button>
-          </form>
-        </section>
+        <ChatPanel
+          profile={profile}
+          language={language}
+          editable={isEditMode}
+          messages={messages}
+          input={input}
+          onInputChange={setInput}
+          onSend={sendMessage}
+          onClose={() => setIsChatOpen(false)}
+          onTitleChange={(value) => updateField("aiTitle", value)}
+          onIntroChange={(value) => updateField("aiIntro", value)}
+        />
       )}
     </main>
   );
@@ -353,69 +317,6 @@ function getEditStatusText(language: Language, saveState: SaveState): string {
   };
 
   return copy[language][saveState];
-}
-
-function EditableText({
-  value,
-  onChange,
-  editable,
-  as = "span",
-  className = "",
-  multiline = false,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  editable: boolean;
-  as?: "span" | "h1" | "h2" | "h3" | "p";
-  className?: string;
-  multiline?: boolean;
-}) {
-  if (editable) {
-    return multiline ? (
-      <textarea className={`editable ${className}`} value={value} onChange={(event) => onChange(event.target.value)} />
-    ) : (
-      <input className={`editable ${className}`} value={value} onChange={(event) => onChange(event.target.value)} />
-    );
-  }
-
-  const Tag = as;
-  return <Tag className={className}>{value}</Tag>;
-}
-
-function SectionHeader({
-  title,
-  editable,
-  onChange,
-}: {
-  title: string;
-  editable: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="section-header">
-      <EditableText value={title} onChange={onChange} editable={editable} as="h2" />
-      <span />
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  editable,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  editable: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="field">
-      <strong>{label}</strong>
-      <EditableText value={value} onChange={onChange} editable={editable} as="p" multiline />
-    </div>
-  );
 }
 
 createRoot(document.getElementById("root")!).render(

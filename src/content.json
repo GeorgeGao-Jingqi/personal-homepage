@@ -4,14 +4,37 @@
     "role": "数据分析师 / 业务洞察探索者",
     "tagline": "我把复杂数据整理成清晰判断，也把职业成长写成可以被看见的证据。",
     "intro": "这个页面是简历之外的补充：你可以快速了解我的成长背景、分析方法、项目成果，以及我如何把数据问题转化为业务行动。",
+    "heroNote": "观察 / 解释 / 行动",
     "storyTitle": "成长故事",
     "story": "我进入数据分析，是从持续追问“为什么这个结果会发生”开始的。相比只交付报表，我更在意问题被重新定义、指标被正确解释、结论能被团队采用。过去的学习和项目让我逐渐形成一套习惯：先理解业务场景，再拆解数据口径，最后用清晰表达推动决策。",
+    "storyAside": "从业务问题开始，沿着证据走到行动。",
     "projectsTitle": "项目成果",
-    "skillsTitle": "技能工具",
+    "projectsIntro": "把分析过程讲清楚，比罗列工具更重要。",
+    "skillsTitle": "分析流程",
+    "skillsIntro": "从定义问题到表达结论，我把工具放在流程里使用。",
     "experienceTitle": "经历亮点",
+    "experienceNote": "持续学习，持续校准。",
     "contactTitle": "联系我",
+    "contactLead": "如果你也在寻找让数据变得有用的方式，欢迎联系我。",
     "aiTitle": "和我的 AI 助手聊聊",
     "aiIntro": "你可以问它关于我的成长背景、项目经历、技能工具或求职方向的问题。",
+    "metrics": [
+      {
+        "value": "待补充",
+        "label": "项目样本",
+        "detail": "用真实项目数量或覆盖范围替换此处"
+      },
+      {
+        "value": "待补充",
+        "label": "效率变化",
+        "detail": "用节省时间、周期或人力成本替换此处"
+      },
+      {
+        "value": "待补充",
+        "label": "业务影响",
+        "detail": "用转化、留存、收入或决策指标替换此处"
+      }
+    ],
     "projects": [
       {
         "title": "用户行为分析项目",
@@ -80,14 +103,37 @@
     "role": "Data Analyst / Business Insight Explorer",
     "tagline": "I turn complex data into clear judgment, and make my growth visible beyond a traditional resume.",
     "intro": "This page complements my resume with context: my growth story, analytical habits, selected projects, and how I translate data questions into business action.",
+    "heroNote": "OBSERVE / EXPLAIN / ACT",
     "storyTitle": "Growth Story",
     "story": "My path into data analytics started with a habit of asking why a result happened. I care about more than producing dashboards: I want to define the right problem, clarify metrics, and communicate findings that a team can actually use. Through learning and project work, I have built a practical workflow: understand the business context, validate the data, then turn analysis into decisions.",
+    "storyAside": "Start with the business question. Follow the evidence to action.",
     "projectsTitle": "Selected Projects",
-    "skillsTitle": "Skills & Tools",
+    "projectsIntro": "The reasoning matters more than a list of tools.",
+    "skillsTitle": "Analytics Workflow",
+    "skillsIntro": "I use tools inside a workflow, from framing to communication.",
     "experienceTitle": "Highlights",
+    "experienceNote": "Keep learning. Keep recalibrating.",
     "contactTitle": "Contact",
+    "contactLead": "If you are looking for ways to make data useful, I would love to hear from you.",
     "aiTitle": "Chat With My AI Assistant",
     "aiIntro": "Ask about my growth story, projects, skills, or career direction.",
+    "metrics": [
+      {
+        "value": "TBD",
+        "label": "Project samples",
+        "detail": "Replace with project count or scope"
+      },
+      {
+        "value": "TBD",
+        "label": "Efficiency change",
+        "detail": "Replace with time, cycle, or effort saved"
+      },
+      {
+        "value": "TBD",
+        "label": "Business impact",
+        "detail": "Replace with conversion, retention, revenue, or decision metrics"
+      }
+    ],
     "projects": [
       {
         "title": "User Behavior Analysis",

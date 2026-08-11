@@ -5,6 +5,35 @@ import { resolve } from "node:path";
 
 const contentPath = resolve(__dirname, "src/content.json");
 
+function hasContentShape(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+
+  const content = value as Record<string, unknown>;
+  return ["zh", "en"].every((language) => {
+    const profile = content[language];
+    if (!profile || typeof profile !== "object") return false;
+
+    const candidate = profile as Record<string, unknown>;
+    return (
+      typeof candidate.name === "string" &&
+      typeof candidate.role === "string" &&
+      typeof candidate.tagline === "string" &&
+      typeof candidate.intro === "string" &&
+      typeof candidate.heroNote === "string" &&
+      typeof candidate.storyAside === "string" &&
+      typeof candidate.projectsIntro === "string" &&
+      typeof candidate.skillsIntro === "string" &&
+      typeof candidate.experienceNote === "string" &&
+      typeof candidate.contactLead === "string" &&
+      Array.isArray(candidate.metrics) &&
+      Array.isArray(candidate.projects) &&
+      Array.isArray(candidate.skills) &&
+      Array.isArray(candidate.experience) &&
+      Array.isArray(candidate.contacts)
+    );
+  });
+}
+
 function localContentApi() {
   return {
     name: "local-content-api",
@@ -25,6 +54,11 @@ function localContentApi() {
           req.on("end", async () => {
             try {
               const parsed = JSON.parse(body);
+              if (!hasContentShape(parsed)) {
+                res.statusCode = 400;
+                res.end("Invalid content shape");
+                return;
+              }
               await writeFile(contentPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf-8");
               res.statusCode = 204;
               res.end();
