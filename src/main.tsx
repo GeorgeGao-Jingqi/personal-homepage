@@ -1,16 +1,9 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import defaultContentData from "./content.json";
-import {
-  ContactSection,
-  ExperienceSection,
-  HeroSection,
-  ProjectsSection,
-  SkillsSection,
-  StorySection,
-} from "./components/ProfileSections";
 import { ChatPanel } from "./components/ChatPanel";
-import "./styles.css";
+import { DigitalGarden } from "./components/DigitalGarden";
+import { getPublicNotes } from "./notes";
 import type {
   ChatMessage,
   Content,
@@ -19,6 +12,7 @@ import type {
   ProfileContent,
   ProfileTextField,
 } from "./types";
+import "./styles.css";
 
 type SaveState = "idle" | "saving" | "saved" | "browser-fallback" | "error";
 
@@ -50,7 +44,6 @@ function isProfileShape(value: unknown): value is ProfileContent {
 
 function hasProfileShape(content: unknown): content is Content {
   if (!content || typeof content !== "object") return false;
-
   const candidate = content as Partial<Content>;
   return isProfileShape(candidate.zh) && isProfileShape(candidate.en);
 }
@@ -86,6 +79,14 @@ async function persistFileContent(content: Content): Promise<boolean> {
 function getAiReply(input: string, profile: ProfileContent, language: Language): string {
   const text = input.toLowerCase();
   const isChinese = language === "zh";
+  const publicNotes = getPublicNotes();
+
+  if (text.includes("笔记") || text.includes("thinking") || text.includes("learning") || text.includes("reading") || text.includes("知识")) {
+    const noteTitles = publicNotes.slice(0, 3).map((note) => `「${note.title}」`).join("、");
+    return isChinese
+      ? `这个数字花园目前有 ${publicNotes.length} 篇公开笔记，最近可以从 ${noteTitles} 开始。你也可以按 Thinking Notes、Learning Log 或 Reading Notes 浏览。`
+      : `The garden currently has ${publicNotes.length} public notes. Start with ${publicNotes.slice(0, 3).map((note) => `"${note.title}"`).join(", ")}, then browse by Thinking Notes, Learning Log, or Reading Notes.`;
+  }
 
   if (text.includes("项目") || text.includes("project")) {
     const project = profile.projects[0];
@@ -100,26 +101,22 @@ function getAiReply(input: string, profile: ProfileContent, language: Language):
       : `My skills are mainly around ${profile.skills.map((skill) => skill.title).join(", ")}. The project cards show how those tools are used in context.`;
   }
 
-  if (text.includes("成长") || text.includes("背景") || text.includes("story") || text.includes("background")) {
-    return profile.story;
-  }
+  if (text.includes("成长") || text.includes("背景") || text.includes("story") || text.includes("background")) return profile.story;
 
   if (text.includes("联系") || text.includes("contact") || text.includes("email")) {
     const email = profile.contacts.find((item) => item.label.toLowerCase() === "email");
-    return isChinese
-      ? `你可以通过 ${email?.value ?? "页面底部的联系方式"} 联系我。`
-      : `You can reach me at ${email?.value ?? "the contact links at the bottom of the page"}.`;
+    return isChinese ? `你可以通过 ${email?.value ?? "页面底部的联系方式"} 联系我。` : `You can reach me at ${email?.value ?? "the contact links at the bottom of the page"}.`;
   }
 
   return isChinese
-    ? `我可以介绍 ${profile.name} 的成长背景、数据分析项目、技能工具和求职方向。你可以试着问：“你最能体现分析能力的项目是什么？”`
-    : `I can talk about ${profile.name}'s growth story, analytics projects, skills, and career direction. Try asking: "Which project best shows your analytical ability?"`;
+    ? `我可以介绍 ${profile.name} 的成长背景、数据分析项目、数字花园笔记、技能工具和求职方向。你可以试着问：“这个数字花园记录了什么？”`
+    : `I can talk about ${profile.name}'s growth story, analytics projects, digital garden notes, skills, and career direction. Try asking: "What does this digital garden contain?"`;
 }
 
 function getAssistantGreeting(language: Language): string {
   return language === "zh"
-    ? "你好，我可以帮你了解这个候选人的成长背景、项目成果和技能工具。"
-    : "Hello, I can introduce this candidate's growth story, projects, and analytics toolkit.";
+    ? "你好，我可以帮你了解这个人的成长背景、项目成果，以及数字花园里的思考、学习和阅读记录。"
+    : "Hello, I can introduce this person's growth story, projects, and notes from the digital garden.";
 }
 
 function App() {
@@ -131,12 +128,8 @@ function App() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      text: getAssistantGreeting("zh"),
-    },
+    { role: "assistant", text: getAssistantGreeting("zh") },
   ]);
-
   const profile = content[language];
 
   useEffect(() => {
@@ -150,38 +143,26 @@ function App() {
           setSaveState("saved");
         }
       })
-      .catch(() => {
-        setSaveState("browser-fallback");
-      });
+      .catch(() => setSaveState("browser-fallback"));
   }, [isEditMode]);
 
   function saveContent(next: Content) {
     setContent(next);
-
     if (!isEditMode) return;
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setSaveState("saving");
-
     saveQueue.current = saveQueue.current
       .catch(() => undefined)
       .then(async () => {
         const didSaveToFile = await persistFileContent(next);
         setSaveState(didSaveToFile ? "saved" : "browser-fallback");
       })
-      .catch(() => {
-        setSaveState("browser-fallback");
-      });
+      .catch(() => setSaveState("browser-fallback"));
   }
 
   function updateField(field: ProfileTextField, value: string) {
-    void saveContent({
-      ...content,
-      [language]: {
-        ...profile,
-        [field]: value,
-      },
-    });
+    void saveContent({ ...content, [language]: { ...profile, [field]: value } });
   }
 
   function updateList(key: EditableListKey, index: number, field: string, value: string) {
@@ -189,26 +170,23 @@ function App() {
 
     switch (key) {
       case "metrics":
-        nextProfile.metrics = profile.metrics.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        nextProfile.metrics = profile.metrics.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
         break;
       case "projects":
-        nextProfile.projects = profile.projects.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        nextProfile.projects = profile.projects.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
         break;
       case "skills":
-        nextProfile.skills = profile.skills.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        nextProfile.skills = profile.skills.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
         break;
       case "experience":
-        nextProfile.experience = profile.experience.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        nextProfile.experience = profile.experience.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
         break;
       case "contacts":
-        nextProfile.contacts = profile.contacts.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item));
+        nextProfile.contacts = profile.contacts.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
         break;
     }
 
-    void saveContent({
-      ...content,
-      [language]: nextProfile,
-    });
+    void saveContent({ ...content, [language]: nextProfile });
   }
 
   function resetContent() {
@@ -219,62 +197,31 @@ function App() {
   function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed) return;
-
-    const reply = getAiReply(trimmed, profile, language);
-    setMessages((current) => [
-      ...current,
-      { role: "user", text: trimmed },
-      { role: "assistant", text: reply },
-    ]);
+    setMessages((current) => [...current, { role: "user", text: trimmed }, { role: "assistant", text: getAiReply(trimmed, profile, language) }]);
     setInput("");
   }
 
   function toggleLanguage() {
     const nextLanguage = language === "zh" ? "en" : "zh";
     setLanguage(nextLanguage);
-    setMessages((current) => (current.length === 1 ? [{ role: "assistant", text: getAssistantGreeting(nextLanguage) }] : current));
+    setMessages((current) => current.length === 1 ? [{ role: "assistant", text: getAssistantGreeting(nextLanguage) }] : current);
   }
 
   return (
-    <main>
-      <header className="topbar">
-        <a className="brand" href="#home">
-          <span className="brand-mark" aria-hidden="true">GG</span>
-          <span>{profile.name}</span>
-        </a>
-        <nav aria-label={language === "zh" ? "页面导航" : "Page navigation"}>
-          <a href="#story">{language === "zh" ? "成长" : "Story"}</a>
-          <a href="#projects">{language === "zh" ? "项目" : "Projects"}</a>
-          <a href="#skills">{language === "zh" ? "流程" : "Workflow"}</a>
-          <a href="#contact">{language === "zh" ? "联系" : "Contact"}</a>
-        </nav>
-        <button className="language-toggle" type="button" onClick={toggleLanguage} aria-label={language === "zh" ? "切换到英文" : "Switch to Chinese"}>
-          {language === "zh" ? "EN" : "中"}
-        </button>
-      </header>
-
-      {isEditMode && (
-        <aside className="edit-banner">
-          <span>{getEditStatusText(language, saveState)}</span>
-          <button type="button" onClick={resetContent}>
-            {language === "zh" ? "恢复默认" : "Reset"}
-          </button>
-        </aside>
-      )}
-
-      <HeroSection
+    <>
+      <DigitalGarden
+        content={content}
         profile={profile}
         language={language}
         editable={isEditMode}
         onFieldChange={updateField}
         onListChange={updateList}
         onOpenChat={() => setIsChatOpen(true)}
+        onToggleLanguage={toggleLanguage}
+        isEditMode={isEditMode}
+        editStatus={getEditStatusText(language, saveState)}
+        onResetContent={resetContent}
       />
-      <StorySection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
-      <ProjectsSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
-      <SkillsSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
-      <ExperienceSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
-      <ContactSection profile={profile} language={language} editable={isEditMode} onFieldChange={updateField} onListChange={updateList} onOpenChat={() => setIsChatOpen(true)} />
 
       <button className="chat-launcher" type="button" onClick={() => setIsChatOpen(true)} aria-label={profile.aiTitle}>
         <span aria-hidden="true">AI</span>
@@ -294,7 +241,7 @@ function App() {
           onIntroChange={(value) => updateField("aiIntro", value)}
         />
       )}
-    </main>
+    </>
   );
 }
 
@@ -315,7 +262,6 @@ function getEditStatusText(language: Language, saveState: SaveState): string {
       error: "Save failed. Check the local edit backend.",
     },
   };
-
   return copy[language][saveState];
 }
 

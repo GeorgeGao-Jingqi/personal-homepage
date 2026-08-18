@@ -1,5 +1,24 @@
 export type Language = "zh" | "en";
 
+export type NoteKind = "thinking" | "learning" | "reading";
+
+export type NoteStatus = "draft" | "editing" | "published" | "archived";
+
+export type GardenNote = {
+  slug: string;
+  type: NoteKind;
+  status: NoteStatus;
+  title: string;
+  summary: string;
+  date: string;
+  updated: string;
+  tags: string[];
+  related: string[];
+  source?: string;
+  sourceUrl?: string;
+  body: string;
+};
+
 export type ChatMessage = {
   role: "assistant" | "user";
   text: string;
