@@ -8,6 +8,8 @@ import type {
   ChatMessage,
   Content,
   EditableListKey,
+  GardenNote,
+  GardenNoteDocument,
   Language,
   ProfileContent,
   ProfileTextField,
@@ -79,6 +81,27 @@ async function persistFileContent(content: Content): Promise<boolean> {
   return response.ok;
 }
 
+function noteDocumentKey(note: GardenNote): string {
+  return `${note.type}/${note.slug}`;
+}
+
+async function fetchNoteDocument(note: GardenNote): Promise<GardenNoteDocument | null> {
+  const response = await fetch(`/api/notes/${encodeURIComponent(note.type)}/${encodeURIComponent(note.slug)}`);
+  if (!response.ok) return null;
+  const next = (await response.json()) as unknown;
+  if (!next || typeof next !== "object") return null;
+  return next as GardenNoteDocument;
+}
+
+async function persistNoteDocument(note: GardenNote, document: GardenNoteDocument): Promise<boolean> {
+  const response = await fetch(`/api/notes/${encodeURIComponent(note.type)}/${encodeURIComponent(note.slug)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(document),
+  });
+  return response.ok;
+}
+
 function getAiReply(input: string, profile: ProfileContent, language: Language): string {
   const text = input.toLowerCase();
   const isChinese = language === "zh";
@@ -130,6 +153,8 @@ function App() {
   const [input, setInput] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const noteLoadQueue = useRef(new Set<string>());
+  const [noteDocuments, setNoteDocuments] = useState<Record<string, GardenNoteDocument>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", text: getAssistantGreeting("zh") },
   ]);
@@ -200,6 +225,38 @@ function App() {
     void saveContent(defaultContent);
   }
 
+  function loadNoteDocument(note: GardenNote) {
+    if (!isEditMode) return;
+    const key = noteDocumentKey(note);
+    if (noteDocuments[key] || noteLoadQueue.current.has(key)) return;
+    noteLoadQueue.current.add(key);
+    void fetchNoteDocument(note)
+      .then((document) => {
+        if (document) {
+          setNoteDocuments((current) => ({ ...current, [key]: document }));
+        } else {
+          setSaveState("browser-fallback");
+        }
+      })
+      .catch(() => setSaveState("browser-fallback"))
+      .finally(() => noteLoadQueue.current.delete(key));
+  }
+
+  function updateNoteDocument(note: GardenNote, document: GardenNoteDocument) {
+    const key = noteDocumentKey(note);
+    setNoteDocuments((current) => ({ ...current, [key]: document }));
+    if (!isEditMode) return;
+
+    setSaveState("saving");
+    saveQueue.current = saveQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        const didSaveToFile = await persistNoteDocument(note, document);
+        setSaveState(didSaveToFile ? "saved" : "browser-fallback");
+      })
+      .catch(() => setSaveState("browser-fallback"));
+  }
+
   function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed) return;
@@ -227,6 +284,9 @@ function App() {
         isEditMode={isEditMode}
         editStatus={getEditStatusText(language, saveState)}
         onResetContent={resetContent}
+        noteDocuments={noteDocuments}
+        onLoadNoteDocument={loadNoteDocument}
+        onNoteDocumentChange={updateNoteDocument}
       />
 
       <button className="chat-launcher" type="button" onClick={() => setIsChatOpen(true)} aria-label={profile.aiTitle}>
@@ -254,16 +314,16 @@ function App() {
 function getEditStatusText(language: Language, saveState: SaveState): string {
   const copy = {
     zh: {
-      idle: "编辑模式已开启。运行 npm run edit 时，修改会写入 src/content.json。",
+      idle: "编辑模式已开启。主页资料和 Markdown 笔记会写回本地内容文件。",
       saving: "正在保存到本地内容文件...",
-      saved: "已保存到 src/content.json。",
+      saved: "已保存到本地内容文件。",
       "browser-fallback": "未连接本地编辑后台，修改仅暂存在当前浏览器。",
       error: "保存失败，请检查本地编辑后台。",
     },
     en: {
-      idle: "Edit mode is on. With npm run edit, changes are written to src/content.json.",
+      idle: "Edit mode is on. Profile content and Markdown notes are written to local files.",
       saving: "Saving to local content file...",
-      saved: "Saved to src/content.json.",
+      saved: "Saved to local content file.",
       "browser-fallback": "Local edit backend is unavailable. Changes are only saved in this browser.",
       error: "Save failed. Check the local edit backend.",
     },

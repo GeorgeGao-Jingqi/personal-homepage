@@ -3261,3 +3261,134 @@ textarea.editable {
     margin-top: 48px;
   }
 }
+
+/* Local Markdown editing is intentionally separate from the public reading layout. */
+.note-edit-panel {
+  background: var(--paper);
+  border: 1px solid #d7c48b;
+  margin-bottom: 42px;
+  max-width: 980px;
+  padding: clamp(18px, 3vw, 30px);
+}
+
+.note-edit-panel-head {
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+}
+
+.note-edit-panel-head span,
+.note-edit-preview-label {
+  color: var(--orange);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.note-edit-panel-head small {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.note-edit-grid {
+  display: grid;
+  gap: 18px 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.note-edit-field,
+.note-edit-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.note-edit-field > span,
+.note-edit-body > span {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.note-edit-field input,
+.note-edit-field textarea,
+.note-edit-field select,
+.note-edit-body textarea {
+  background: #fffef9;
+  border: 1px solid #d7c48b;
+  border-radius: 5px;
+  color: var(--ink);
+  line-height: 1.5;
+  min-width: 0;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.note-edit-field textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.note-edit-field select {
+  min-height: 44px;
+}
+
+.note-edit-body {
+  margin-top: 24px;
+}
+
+.note-edit-body textarea {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  min-height: 430px;
+  resize: vertical;
+  tab-size: 2;
+}
+
+.note-edit-preview {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.note-edit-preview-label {
+  margin-bottom: 22px;
+}
+
+.note-edit-loading {
+  background: #fff4d4;
+  border: 1px solid #ead7a3;
+  color: #634c1c;
+  font-size: 15px;
+  margin: 0 0 34px;
+  padding: 14px 16px;
+}
+
+@media (max-width: 760px) {
+  .note-edit-panel {
+    margin-bottom: 30px;
+    padding: 18px;
+  }
+
+  .note-edit-panel-head {
+    align-items: start;
+    display: grid;
+    gap: 8px;
+  }
+
+  .note-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .note-edit-body textarea {
+    min-height: 320px;
+  }
+}

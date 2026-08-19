@@ -15,6 +15,7 @@ import type {
   Content,
   EditableListKey,
   GardenNote,
+  GardenNoteDocument,
   Interest,
   Language,
   NoteKind,
@@ -43,6 +44,12 @@ type Route =
   | { kind: "note"; slug: string }
   | { kind: "tags" }
   | { kind: "tag"; tag: string };
+
+type NoteEditingProps = {
+  noteDocuments: Record<string, GardenNoteDocument>;
+  onLoadNoteDocument: (note: GardenNote) => void;
+  onNoteDocumentChange: (note: GardenNote, document: GardenNoteDocument) => void;
+};
 
 const noteKindLabels: Record<Language, Record<NoteKind, string>> = {
   zh: { thinking: "Thinking Notes", learning: "Learning Log", reading: "Reading Notes" },
@@ -206,7 +213,10 @@ export function DigitalGarden({
   isEditMode,
   editStatus,
   onResetContent,
-}: ProfileSurfaceProps & {
+  noteDocuments,
+  onLoadNoteDocument,
+  onNoteDocumentChange,
+}: ProfileSurfaceProps & NoteEditingProps & {
   content: Content;
   onToggleLanguage: () => void;
   isEditMode: boolean;
@@ -324,6 +334,9 @@ export function DigitalGarden({
             onOpenChat={onOpenChat}
             copy={copy}
             publicNotes={publicNotes}
+            noteDocuments={noteDocuments}
+            onLoadNoteDocument={onLoadNoteDocument}
+            onNoteDocumentChange={onNoteDocumentChange}
           />
         </main>
         <footer className="garden-footer">
@@ -340,19 +353,16 @@ function GardenNavLink({ href, active, category = false, count, onClick, childre
   return <a className={`garden-nav-link ${active ? "is-active" : ""} ${category ? "is-category" : ""}`} href={href} onClick={onClick}><span>{children}</span>{typeof count === "number" && <small>{String(count).padStart(2, "0")}</small>}</a>;
 }
 
-function GardenPage({ route, profile, content, language, editable, onFieldChange, onListChange, onOpenChat, copy, publicNotes }: {
+function GardenPage({ route, profile, content, language, editable, onFieldChange, onListChange, onOpenChat, copy, publicNotes, noteDocuments, onLoadNoteDocument, onNoteDocumentChange }: ProfileSurfaceProps & NoteEditingProps & {
   route: Route;
-  profile: ProfileContent;
   content: Content;
-  language: Language;
-  editable: boolean;
-  onFieldChange: ProfileSurfaceProps["onFieldChange"];
-  onListChange: ProfileSurfaceProps["onListChange"];
-  onOpenChat: () => void;
   copy: (typeof uiCopy)[Language];
   publicNotes: GardenNote[];
 }) {
-  if (route.kind === "note") return <NoteDetail note={findNote(route.slug)} language={language} copy={copy} publicNotes={publicNotes} />;
+  if (route.kind === "note") {
+    const note = findNote(route.slug);
+    return <NoteDetail note={note} language={language} copy={copy} publicNotes={publicNotes} editable={editable} noteDocument={note ? noteDocuments[noteDocumentKey(note)] : undefined} onLoadNoteDocument={onLoadNoteDocument} onNoteDocumentChange={onNoteDocumentChange} />;
+  }
   if (route.kind === "notes") return <NotesIndex category={route.category} language={language} copy={copy} publicNotes={publicNotes} />;
   if (route.kind === "tags") return <TagsIndex language={language} copy={copy} />;
   if (route.kind === "tag") return <TagDetail tag={route.tag} language={language} copy={copy} publicNotes={publicNotes} />;
@@ -447,10 +457,38 @@ function NotesIndex({ category, language, copy, publicNotes }: { category?: Note
   return <div className="notes-page"><PageIntro eyebrow={category ? `0${noteKinds.indexOf(category) + 1}` : "GARDEN"} title={title} intro={description} />{!category && <div className="knowledge-directory" aria-label={language === "zh" ? "知识库分类" : "Knowledge categories"}>{noteKinds.map((kind, index) => <a key={kind} className={`knowledge-category-link category-${kind}`} href={`#/notes/${kind}`}><span className="knowledge-category-index">0{index + 1}</span><span><strong>{noteKindLabels[language][kind]}</strong><small>{noteKindDescriptions[language][kind]}</small></span><span className="knowledge-category-arrow" aria-hidden="true">↗</span></a>)}<a className="knowledge-topics-link" href="#/tags"><span>{copy.browseTopics}</span><span aria-hidden="true">↗</span></a></div>}<div className="notes-filter-row"><span>{String(notesToShow.length).padStart(2, "0")} {language === "zh" ? "篇笔记" : "notes"}</span><div>{category && <a className="filter-chip" href="#/notes">{copy.notes}</a>}</div></div><div className="notes-list">{notesToShow.map((note) => <NoteCard key={note.slug} note={note} language={language} copy={copy} />)}</div></div>;
 }
 
-function NoteDetail({ note, language, copy, publicNotes }: { note?: GardenNote; language: Language; copy: (typeof uiCopy)[Language]; publicNotes: GardenNote[] }) {
+function noteDocumentKey(note: GardenNote): string {
+  return `${note.type}/${note.slug}`;
+}
+
+function listFieldValue(items: string[]): string {
+  return items.join(", ");
+}
+
+function parseListField(value: string): string[] {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function NoteEditField({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean }) {
+  return <label className="note-edit-field"><span>{label}</span>{multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} /> : <input value={value} onChange={(event) => onChange(event.target.value)} />}</label>;
+}
+
+function NoteDetail({ note, language, copy, publicNotes, editable, noteDocument, onLoadNoteDocument, onNoteDocumentChange }: { note?: GardenNote; language: Language; copy: (typeof uiCopy)[Language]; publicNotes: GardenNote[]; editable: boolean; noteDocument?: GardenNoteDocument; onLoadNoteDocument: (note: GardenNote) => void; onNoteDocumentChange: (note: GardenNote, document: GardenNoteDocument) => void }) {
+  useEffect(() => {
+    if (editable && note) onLoadNoteDocument(note);
+  }, [editable, note?.slug]);
+
   if (!note) return <NotFound copy={copy} />;
   const relatedNotes = findRelatedNotes(note);
-  return <article className="note-detail"><a className="back-link" href={`#/notes/${note.type}`}>← {copy.back}</a><header className="note-detail-header"><div className="note-detail-type"><span className={`note-type type-${note.type}`}>{noteKindLabels[language][note.type]}</span><span>{note.status === "editing" ? copy.statusEditing : copy.statusPublished}</span></div><h1>{note.title}</h1><p className="note-detail-summary">{note.summary}</p><div className="note-detail-meta"><span>{copy.updated} {formatDate(note.updated, language)}</span><span>{estimateReadTime(note.body)} {copy.readTime}</span>{note.tags.map((tag) => <a key={tag} href={`#/tags/${encodeURIComponent(tag)}`}>#{tag}</a>)}</div></header><div className="note-detail-layout"><div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{note.body}</ReactMarkdown></div><aside className="note-detail-aside"><div><span className="aside-label">{copy.knowledgeMap}</span><a href={`#/notes/${note.type}`}>{noteKindLabels[language][note.type]}</a></div>{note.source && <div><span className="aside-label">{copy.source}</span>{note.sourceUrl ? <a href={note.sourceUrl} target="_blank" rel="noreferrer">{note.source} ↗</a> : <span>{note.source}</span>}</div>}{relatedNotes.length > 0 && <div><span className="aside-label">{copy.related}</span>{relatedNotes.map((related) => <a key={related.slug} href={noteHref(related)}>{related.title}</a>)}</div>}</aside></div>{publicNotes.length > 0 && <div className="note-detail-next"><span>{language === "zh" ? "继续探索" : "Keep exploring"}</span><a href="#/notes">{copy.viewAll} ↗</a></div>}</article>;
+  const document = noteDocument;
+  const displayNote: GardenNote = document ? { ...note, ...document.frontmatter, body: document.body } : note;
+  const updateDocument = (next: GardenNoteDocument) => onNoteDocumentChange(note, next);
+  const updateFrontmatter = (field: keyof GardenNoteDocument["frontmatter"], value: string | string[]) => {
+    if (!document) return;
+    updateDocument({ ...document, frontmatter: { ...document.frontmatter, [field]: value } });
+  };
+
+  return <article className="note-detail"><a className="back-link" href={`#/notes/${note.type}`}>← {copy.back}</a>{editable && document ? <div className="note-edit-panel"><div className="note-edit-panel-head"><span>{language === "zh" ? "编辑 Markdown 笔记" : "Edit Markdown note"}</span><small>{note.type}/{note.slug}.md</small></div><div className="note-edit-grid"><NoteEditField label={language === "zh" ? "标题" : "Title"} value={document.frontmatter.title} onChange={(value) => updateFrontmatter("title", value)} /><NoteEditField label={language === "zh" ? "摘要" : "Summary"} value={document.frontmatter.summary} onChange={(value) => updateFrontmatter("summary", value)} multiline /><NoteEditField label={language === "zh" ? "创建日期" : "Date"} value={document.frontmatter.date} onChange={(value) => updateFrontmatter("date", value)} /><NoteEditField label={language === "zh" ? "更新时间" : "Updated"} value={document.frontmatter.updated} onChange={(value) => updateFrontmatter("updated", value)} /><label className="note-edit-field"><span>{language === "zh" ? "状态" : "Status"}</span><select value={document.frontmatter.status} onChange={(event) => updateFrontmatter("status", event.target.value)}><option value="draft">draft</option><option value="editing">editing</option><option value="published">published</option><option value="archived">archived</option></select></label><NoteEditField label={language === "zh" ? "标签（逗号分隔）" : "Tags (comma separated)"} value={listFieldValue(document.frontmatter.tags)} onChange={(value) => updateFrontmatter("tags", parseListField(value))} /><NoteEditField label={language === "zh" ? "关联笔记（逗号分隔 slug）" : "Related slugs (comma separated)"} value={listFieldValue(document.frontmatter.related)} onChange={(value) => updateFrontmatter("related", parseListField(value))} /><NoteEditField label={language === "zh" ? "来源" : "Source"} value={document.frontmatter.source ?? ""} onChange={(value) => updateFrontmatter("source", value)} /><NoteEditField label="sourceUrl" value={document.frontmatter.sourceUrl ?? ""} onChange={(value) => updateFrontmatter("sourceUrl", value)} /></div><label className="note-edit-body"><span>{language === "zh" ? "正文 Markdown" : "Markdown body"}</span><textarea value={document.body} onChange={(event) => updateDocument({ ...document, body: event.target.value })} /></label></div> : editable ? <p className="note-edit-loading">{language === "zh" ? "正在加载笔记文件..." : "Loading note file..."}</p> : <header className="note-detail-header"><div className="note-detail-type"><span className={`note-type type-${displayNote.type}`}>{noteKindLabels[language][displayNote.type]}</span><span>{displayNote.status === "editing" ? copy.statusEditing : copy.statusPublished}</span></div><h1>{displayNote.title}</h1><p className="note-detail-summary">{displayNote.summary}</p><div className="note-detail-meta"><span>{copy.updated} {formatDate(displayNote.updated, language)}</span><span>{estimateReadTime(displayNote.body)} {copy.readTime}</span>{displayNote.tags.map((tag) => <a key={tag} href={`#/tags/${encodeURIComponent(tag)}`}>#{tag}</a>)}</div></header>}<div className="note-detail-layout"><div className={editable && document ? "markdown-body note-edit-preview" : "markdown-body"}>{editable && document ? <><div className="note-edit-preview-label">{language === "zh" ? "实时预览" : "Live preview"}</div><ReactMarkdown remarkPlugins={[remarkGfm]}>{displayNote.body}</ReactMarkdown></> : <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayNote.body}</ReactMarkdown>}</div><aside className="note-detail-aside"><div><span className="aside-label">{copy.knowledgeMap}</span><a href={`#/notes/${note.type}`}>{noteKindLabels[language][note.type]}</a></div>{editable && document ? <><NoteEditField label={language === "zh" ? "参考来源" : "Source"} value={document.frontmatter.source ?? ""} onChange={(value) => updateFrontmatter("source", value)} /><NoteEditField label="sourceUrl" value={document.frontmatter.sourceUrl ?? ""} onChange={(value) => updateFrontmatter("sourceUrl", value)} /></> : displayNote.source && <div><span className="aside-label">{copy.source}</span>{displayNote.sourceUrl ? <a href={displayNote.sourceUrl} target="_blank" rel="noreferrer">{displayNote.source} ↗</a> : <span>{displayNote.source}</span>}</div>}{relatedNotes.length > 0 && <div><span className="aside-label">{copy.related}</span>{relatedNotes.map((related) => <a key={related.slug} href={noteHref(related)}>{related.title}</a>)}</div>}</aside></div>{publicNotes.length > 0 && <div className="note-detail-next"><span>{language === "zh" ? "继续探索" : "Keep exploring"}</span><a href="#/notes">{copy.viewAll} ↗</a></div>}</article>;
 }
 
 function TagsIndex({ language, copy }: { language: Language; copy: (typeof uiCopy)[Language] }) {

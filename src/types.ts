@@ -19,6 +19,23 @@ export type GardenNote = {
   body: string;
 };
 
+export type GardenNoteFrontmatter = {
+  title: string;
+  status: NoteStatus;
+  date: string;
+  updated: string;
+  summary: string;
+  tags: string[];
+  related: string[];
+  source?: string;
+  sourceUrl?: string;
+};
+
+export type GardenNoteDocument = {
+  frontmatter: GardenNoteFrontmatter;
+  body: string;
+};
+
 export type ChatMessage = {
   role: "assistant" | "user";
   text: string;

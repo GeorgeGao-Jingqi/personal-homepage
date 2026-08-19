@@ -4,7 +4,7 @@
 
 这是一个数据分析师个人主页，用作简历补充。项目基于 React + Vite + TypeScript，支持中英双语、页面内编辑、模拟 AI 对话入口，并通过 GitHub Actions 部署到 GitHub Pages。
 
-线上页面是纯静态站点。只有本地运行 `npm run edit` 时，`?edit=1` 页面才会连接本地编辑 API，把内容写回 `src/content.json`。
+线上页面是纯静态站点。只有本地运行 `npm run edit` 时，`?edit=1` 页面才会连接本地编辑 API，把主页资料写回 `src/content.json`，把 Markdown 笔记写回 `content/notes/`。
 
 ## 参考主页与风格要求
 
@@ -21,14 +21,14 @@
 - 数字花园使用 `content/notes/` 下的 Markdown 文件作为长期知识内容来源，分为 `thinking/`、`learning/`、`reading/` 三类。
 - 每篇笔记需要包含 YAML frontmatter：`title`、`status`、`date`、`updated`、`summary`、`tags`、`related`；阅读笔记可增加 `source` 和 `sourceUrl`。
 - `status` 使用 `draft`、`editing`、`published`、`archived`。线上默认只展示 `published` 和 `editing`，不要把草稿放入公开导航或搜索结果。
-- 笔记通过构建时 `import.meta.glob` 收集，并由 `gray-matter` 解析；不要在前端引入真实数据库或写入 API。
+- 笔记通过构建时 `import.meta.glob` 收集，并由 `gray-matter` 解析；只有本地 `edit` 模式允许通过 `/api/notes` 写回 Markdown，不要在生产站点引入真实数据库或写入 API。
 - 数字花园页面使用 Hash 路由，需兼容 GitHub Pages 子路径；新增页面时同步检查首页、笔记详情、标签页、搜索和移动端导航。
-- v1 笔记通过文件编辑维护，`?edit=1` 仍只负责编辑 `src/content.json` 中的主页资料，不扩展为在线 Markdown 编辑器。
+- `?edit=1` 支持笔记详情页编辑 frontmatter 和 Markdown 正文；线上 GitHub Pages 仍然只读，草稿状态仍不进入公开列表。
 
 ## 常用命令
 
 - `npm run dev`：启动普通 Vite 预览。
-- `npm run edit`：启动本地编辑后台，访问 `http://127.0.0.1:<port>/?edit=1` 后，页面修改会写入 `src/content.json`。
+- `npm run edit`：启动本地编辑后台，访问 `http://127.0.0.1:<port>/?edit=1` 后，主页修改写入 `src/content.json`，笔记详情页修改写入对应的 `content/notes/<type>/<slug>.md`。
 - `npm run build`：运行 TypeScript 检查并生成生产构建。
 - `npm run preview`：预览 `npm run build` 生成的生产版本。
 
@@ -55,5 +55,5 @@
 ## 验证清单
 
 - 内容变更：运行 `npm run build`，并在本地确认中英切换和 AI 对话仍能使用。
-- 编辑功能变更：运行 `npm run edit`，访问 `?edit=1`，修改一处文案后确认 `src/content.json` 发生变化。
+- 编辑功能变更：运行 `npm run edit`，访问 `?edit=1`，分别修改主页资料和一篇笔记，确认 `src/content.json` 与对应 Markdown 文件发生变化并能恢复原文。
 - 部署相关变更：确认 GitHub Actions workflow 仍发布 `dist/`，并检查 GitHub Pages 链接下首屏图和静态资源正常加载。
