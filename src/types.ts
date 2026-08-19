@@ -30,7 +30,7 @@ export type Metric = {
   detail: string;
 };
 
-export type EditableListKey = "metrics" | "projects" | "skills" | "experience" | "contacts";
+export type EditableListKey = "metrics" | "projects" | "skills" | "experience" | "contacts" | "interests";
 
 export type Project = {
   title: string;
@@ -55,6 +55,15 @@ export type Contact = {
   value: string;
 };
 
+export type Interest = {
+  slug: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  details: string;
+  keywords: string;
+};
+
 export type ProfileContent = {
   name: string;
   role: string;
@@ -74,11 +83,14 @@ export type ProfileContent = {
   contactLead: string;
   aiTitle: string;
   aiIntro: string;
+  interestsTitle: string;
+  interestsIntro: string;
   metrics: Metric[];
   projects: Project[];
   skills: SkillGroup[];
   experience: Experience[];
   contacts: Contact[];
+  interests: Interest[];
 };
 
 export type ProfileTextField =
@@ -99,6 +111,8 @@ export type ProfileTextField =
   | "contactTitle"
   | "contactLead"
   | "aiTitle"
-  | "aiIntro";
+  | "aiIntro"
+  | "interestsTitle"
+  | "interestsIntro";
 
 export type Content = Record<Language, ProfileContent>;

@@ -18,6 +18,8 @@
     "contactLead": "如果你也在寻找让数据变得有用的方式，欢迎联系我。",
     "aiTitle": "和我的 AI 助手聊聊",
     "aiIntro": "你可以问它关于我的成长背景、项目经历、技能工具或求职方向的问题。",
+    "interestsTitle": "兴趣爱好",
+    "interestsIntro": "工作之外，我用一些长期兴趣保持身体、创造力和好奇心的连接。",
     "metrics": [
       {
         "value": "待补充",
@@ -96,6 +98,32 @@
         "label": "GitHub",
         "value": "https://github.com/your-name"
       }
+    ],
+    "interests": [
+      {
+        "slug": "fitness",
+        "title": "健身",
+        "subtitle": "把规律变成身体的反馈",
+        "description": "通过持续训练观察状态变化，也练习把长期目标拆成今天可以完成的一组动作。",
+        "details": "这里可以记录训练计划、阶段复盘、动作学习和身体状态变化。内容会随着训练持续更新。",
+        "keywords": "力量训练 / 规律 / 身体状态"
+      },
+      {
+        "slug": "guitar",
+        "title": "吉他",
+        "subtitle": "在重复练习里找到表达",
+        "description": "吉他让我保持耐心：从一个和弦、一段节奏开始，慢慢把喜欢的声音弹出来。",
+        "details": "这里可以记录正在练习的歌曲、和弦、节奏型和想要完成的音乐片段。",
+        "keywords": "和弦 / 节奏 / 表达"
+      },
+      {
+        "slug": "gaming",
+        "title": "游戏",
+        "subtitle": "在规则和选择中理解体验",
+        "description": "游戏是我观察系统、反馈和叙事的另一种方式，也让我持续关注人与产品如何互动。",
+        "details": "这里可以记录游戏体验、关卡设计、叙事观察，以及值得反复思考的机制和选择。",
+        "keywords": "体验 / 系统 / 叙事"
+      }
     ]
   },
   "en": {
@@ -117,6 +145,8 @@
     "contactLead": "If you are looking for ways to make data useful, I would love to hear from you.",
     "aiTitle": "Chat With My AI Assistant",
     "aiIntro": "Ask about my growth story, projects, skills, or career direction.",
+    "interestsTitle": "Interests",
+    "interestsIntro": "Outside work, a few long-term interests keep me connected to movement, creativity, and curiosity.",
     "metrics": [
       {
         "value": "TBD",
@@ -194,6 +224,32 @@
       {
         "label": "GitHub",
         "value": "https://github.com/your-name"
+      }
+    ],
+    "interests": [
+      {
+        "slug": "fitness",
+        "title": "Fitness",
+        "subtitle": "Turning consistency into feedback",
+        "description": "Training helps me observe change over time and break long-term goals into actions I can complete today.",
+        "details": "A place for training plans, small reviews, movement practice, and notes on changing energy and body condition.",
+        "keywords": "Strength / Consistency / Body awareness"
+      },
+      {
+        "slug": "guitar",
+        "title": "Guitar",
+        "subtitle": "Finding expression through repetition",
+        "description": "The guitar keeps me patient: start with one chord or rhythm, then slowly turn practice into a piece of music.",
+        "details": "A place for songs in progress, chord shapes, rhythm patterns, and small musical ideas I want to finish.",
+        "keywords": "Chords / Rhythm / Expression"
+      },
+      {
+        "slug": "gaming",
+        "title": "Games",
+        "subtitle": "Understanding experiences through rules and choices",
+        "description": "Games are another way for me to observe systems, feedback, and narrative, while thinking about how people interact with products.",
+        "details": "A place for game experiences, level design, narrative observations, and mechanics worth revisiting.",
+        "keywords": "Experience / Systems / Narrative"
       }
     ]
   }

@@ -15,6 +15,7 @@ import type {
   Content,
   EditableListKey,
   GardenNote,
+  Interest,
   Language,
   NoteKind,
   ProfileContent,
@@ -37,6 +38,7 @@ type Route =
   | { kind: "projects" }
   | { kind: "about" }
   | { kind: "contact" }
+  | { kind: "interest"; slug: string }
   | { kind: "notes"; category?: NoteKind }
   | { kind: "note"; slug: string }
   | { kind: "tags" }
@@ -69,6 +71,7 @@ const uiCopy = {
     projects: "项目成果",
     about: "关于我",
     contact: "联系",
+    interests: "兴趣爱好",
     notes: "知识库",
     tags: "主题",
     search: "搜索笔记、标签或关键词",
@@ -100,6 +103,8 @@ const uiCopy = {
     categories: "个内容分区",
     menu: "打开导航",
     closeMenu: "关闭导航",
+    interestBack: "返回关于这个人",
+    interestIndex: "INTERESTS",
   },
   en: {
     garden: "Personal Digital Garden",
@@ -109,6 +114,7 @@ const uiCopy = {
     projects: "Projects",
     about: "About",
     contact: "Contact",
+    interests: "Interests",
     notes: "Knowledge garden",
     tags: "Topics",
     search: "Search notes, tags, or keywords",
@@ -140,6 +146,8 @@ const uiCopy = {
     categories: "content areas",
     menu: "Open navigation",
     closeMenu: "Close navigation",
+    interestBack: "Back to about",
+    interestIndex: "INTERESTS",
   },
 } as const;
 
@@ -151,6 +159,7 @@ function parseRoute(hash: string): Route {
   if (segments[0] === "projects") return { kind: "projects" };
   if (segments[0] === "about") return { kind: "about" };
   if (segments[0] === "contact") return { kind: "contact" };
+  if (segments[0] === "interests" && segments[1]) return { kind: "interest", slug: segments[1] };
   if (segments[0] === "tags" && segments[1]) return { kind: "tag", tag: segments[1] };
   if (segments[0] === "tags") return { kind: "tags" };
   if (segments[0] === "notes" && segments[1] && segments[2]) return { kind: "note", slug: segments[2] };
@@ -259,6 +268,12 @@ export function DigitalGarden({
           <span className="nav-label">{language === "zh" ? "关于这个人" : "About the person"}</span>
           <GardenNavLink href="#/about" active={route.kind === "about"} onClick={closeNavigation}>{copy.about}</GardenNavLink>
           <GardenNavLink href="#/contact" active={route.kind === "contact"} onClick={closeNavigation}>{copy.contact}</GardenNavLink>
+          <span className="nav-label">{copy.interests}</span>
+          {profile.interests.map((interest) => (
+            <GardenNavLink key={interest.slug} href={`#/interests/${encodeURIComponent(interest.slug)}`} active={route.kind === "interest" && route.slug === interest.slug} onClick={closeNavigation} category>
+              {interest.title}
+            </GardenNavLink>
+          ))}
         </div>
 
         <div className="sidebar-tools">
@@ -341,6 +356,7 @@ function GardenPage({ route, profile, content, language, editable, onFieldChange
   if (route.kind === "notes") return <NotesIndex category={route.category} language={language} copy={copy} publicNotes={publicNotes} />;
   if (route.kind === "tags") return <TagsIndex language={language} copy={copy} />;
   if (route.kind === "tag") return <TagDetail tag={route.tag} language={language} copy={copy} publicNotes={publicNotes} />;
+  if (route.kind === "interest") return <InterestDetail interest={profile.interests.find((item) => item.slug === route.slug)} profile={profile} language={language} editable={editable} onListChange={onListChange} copy={copy} />;
   if (route.kind === "home") return <GardenHome profile={profile} language={language} copy={copy} publicNotes={publicNotes} editable={editable} onFieldChange={onFieldChange} onOpenChat={onOpenChat} />;
 
   return <ProfileSurface section={route.kind} profile={profile} language={language} editable={editable} onFieldChange={onFieldChange} onListChange={onListChange} onOpenChat={onOpenChat} content={content} />;
@@ -447,6 +463,13 @@ function TagDetail({ tag, language, copy, publicNotes }: { tag: string; language
   return <div className="notes-page"><a className="back-link" href="#/tags">← {copy.tags}</a><PageIntro eyebrow="TAG" title={`#${tag}`} intro={language === "zh" ? `围绕“${tag}”的笔记。` : `Notes connected to “${tag}”.`} /><div className="notes-list">{matchingNotes.length > 0 ? matchingNotes.map((note) => <NoteCard key={note.slug} note={note} language={language} copy={copy} />) : <p className="empty-state">{copy.noResults}</p>}</div></div>;
 }
 
+function InterestDetail({ interest, profile, language, editable, onListChange, copy }: { interest?: Interest; profile: ProfileContent; language: Language; editable: boolean; onListChange: ProfileSurfaceProps["onListChange"]; copy: (typeof uiCopy)[Language] }) {
+  if (!interest) return <NotFound copy={copy} />;
+  const interestIndex = profile.interests.findIndex((item) => item.slug === interest.slug);
+  const update = (field: keyof Omit<Interest, "slug">, value: string) => onListChange("interests", interestIndex, field, value);
+  return <article className="interest-detail"><a className="back-link" href="#/about">← {copy.interestBack}</a><header className="interest-detail-header"><span className="interest-detail-kicker">{copy.interestIndex} / 0{interestIndex + 1}</span><EditableText value={interest.title} onChange={(value) => update("title", value)} editable={editable} as="h1" /><EditableText value={interest.subtitle} onChange={(value) => update("subtitle", value)} editable={editable} as="p" className="interest-detail-subtitle" multiline /></header><div className="interest-detail-layout"><div className="interest-detail-main"><EditableText value={interest.description} onChange={(value) => update("description", value)} editable={editable} as="p" className="interest-detail-description" multiline /><div className="interest-detail-note"><span>{language === "zh" ? "持续记录" : "Ongoing notes"}</span><EditableText value={interest.details} onChange={(value) => update("details", value)} editable={editable} as="p" multiline /></div></div><aside className="interest-detail-aside"><span className="aside-label">{language === "zh" ? "关键词" : "Keywords"}</span><EditableText value={interest.keywords} onChange={(value) => update("keywords", value)} editable={editable} as="p" multiline /><div className="interest-detail-nav"><span>{language === "zh" ? "兴趣入口" : "Interest tabs"}</span>{profile.interests.map((item) => <a key={item.slug} className={item.slug === interest.slug ? "is-active" : ""} href={`#/interests/${encodeURIComponent(item.slug)}`}>{item.title} ↗</a>)}</div></aside></div></article>;
+}
+
 function PageIntro({ eyebrow, title, intro }: { eyebrow: string; title: string; intro: string }) {
   return <header className="page-intro"><span>{eyebrow}</span><h1>{title}</h1><p>{intro}</p></header>;
 }
@@ -458,6 +481,10 @@ function NotFound({ copy }: { copy: (typeof uiCopy)[Language] }) {
 function ProfileSurface({ section, content, ...props }: ProfileSurfaceProps & { section: "profile" | "projects" | "about" | "contact"; content: Content }) {
   if (section === "projects") return <div className="profile-view"><ProjectsSection {...props} /></div>;
   if (section === "contact") return <div className="profile-view"><ContactSection {...props} /></div>;
-  if (section === "about") return <div className="profile-view"><StorySection {...props} /><ExperienceSection {...props} /></div>;
+  if (section === "about") return <div className="profile-view"><StorySection {...props} /><ExperienceSection {...props} /><InterestsOverview {...props} /></div>;
   return <div className="profile-view"><HeroSection {...props} /><StorySection {...props} /><ProjectsSection {...props} /><SkillsSection {...props} /><ExperienceSection {...props} /><ContactSection {...props} /></div>;
+}
+
+function InterestsOverview({ profile, language, editable, onFieldChange }: ProfileSurfaceProps) {
+  return <section className="interests-overview"><div className="interests-overview-head"><div><span className="garden-section-eyebrow">{language === "zh" ? "兴趣入口" : "INTERESTS"}</span><EditableText value={profile.interestsTitle} onChange={(value) => onFieldChange("interestsTitle", value)} editable={editable} as="h2" /></div><EditableText value={profile.interestsIntro} onChange={(value) => onFieldChange("interestsIntro", value)} editable={editable} as="p" multiline /></div><div className="interest-tab-grid">{profile.interests.map((interest, index) => <a key={interest.slug} className="interest-tab" href={`#/interests/${encodeURIComponent(interest.slug)}`}><span>0{index + 1}</span><strong>{interest.title}</strong><small>{interest.subtitle}</small><em aria-hidden="true">↗</em></a>)}</div></section>;
 }

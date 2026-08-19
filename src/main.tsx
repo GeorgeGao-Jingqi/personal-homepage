@@ -34,11 +34,14 @@ function isProfileShape(value: unknown): value is ProfileContent {
       typeof candidate.skillsIntro === "string" &&
       typeof candidate.experienceNote === "string" &&
       typeof candidate.contactLead === "string" &&
+      typeof candidate.interestsTitle === "string" &&
+      typeof candidate.interestsIntro === "string" &&
       Array.isArray(candidate.metrics) &&
       Array.isArray(candidate.projects) &&
       Array.isArray(candidate.skills) &&
       Array.isArray(candidate.experience) &&
-      Array.isArray(candidate.contacts),
+      Array.isArray(candidate.contacts) &&
+      Array.isArray(candidate.interests),
   );
 }
 
@@ -183,6 +186,9 @@ function App() {
         break;
       case "contacts":
         nextProfile.contacts = profile.contacts.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
+        break;
+      case "interests":
+        nextProfile.interests = profile.interests.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
         break;
     }
 

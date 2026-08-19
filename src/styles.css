@@ -2961,3 +2961,303 @@ textarea.editable {
   .note-detail-aside { margin-top: 48px; }
   .tag-link { min-height: 68px; }
 }
+
+/* Interest tabs */
+.interests-overview {
+  border-top: 1px solid var(--ink);
+  margin-top: 96px;
+  padding: 78px 0 72px;
+}
+
+.interests-overview-head {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  padding-bottom: 28px;
+}
+
+.garden-section-eyebrow,
+.interest-detail-kicker {
+  color: var(--orange);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.interests-overview-head h2 {
+  color: var(--ink);
+  font-size: 52px;
+  line-height: 1;
+  margin: 16px 0 0;
+}
+
+.interests-overview-head > p {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.interest-tab-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.interest-tab {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 186px;
+  padding: 24px 24px 22px 0;
+  position: relative;
+}
+
+.interest-tab + .interest-tab {
+  padding-left: 24px;
+}
+
+.interest-tab:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.interest-tab > span {
+  color: var(--teal);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.interest-tab strong {
+  color: var(--ink);
+  font-size: 26px;
+  margin-top: 26px;
+}
+
+.interest-tab small {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+  margin-top: 8px;
+  padding-right: 32px;
+}
+
+.interest-tab em {
+  bottom: 24px;
+  color: var(--orange);
+  font-size: 20px;
+  font-style: normal;
+  position: absolute;
+  right: 24px;
+}
+
+.interest-tab:hover strong,
+.interest-tab:hover em {
+  color: var(--teal);
+}
+
+.interest-detail {
+  padding: 116px 0 100px;
+}
+
+.interest-detail-header {
+  border-bottom: 1px solid var(--ink);
+  max-width: 980px;
+  padding-bottom: 44px;
+}
+
+.interest-detail-header h1 {
+  color: var(--ink);
+  font-size: 82px;
+  line-height: 1;
+  margin: 28px 0 20px;
+}
+
+.interest-detail-subtitle {
+  color: var(--teal-dark);
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 760px;
+}
+
+.interest-detail-layout {
+  display: grid;
+  gap: 100px;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  max-width: 1120px;
+  padding-top: 62px;
+}
+
+.interest-detail-main {
+  min-width: 0;
+}
+
+.interest-detail-description {
+  color: #354541;
+  font-size: 21px;
+  line-height: 1.85;
+  margin: 0;
+  max-width: 740px;
+}
+
+.interest-detail-note {
+  border-top: 1px solid var(--line);
+  margin-top: 58px;
+  max-width: 740px;
+  padding-top: 16px;
+}
+
+.interest-detail-note > span {
+  color: var(--orange);
+  display: block;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.interest-detail-note > p {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.85;
+  margin: 16px 0 0;
+}
+
+.interest-detail-aside {
+  align-self: start;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.interest-detail-aside > p {
+  color: var(--teal);
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.interest-detail-nav {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0;
+  margin-top: 28px;
+  padding-top: 14px;
+}
+
+.interest-detail-nav > span {
+  color: #92988e;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.interest-detail-nav a {
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+  padding: 10px 0;
+}
+
+.interest-detail-nav a:hover,
+.interest-detail-nav a.is-active {
+  color: var(--teal);
+}
+
+@media (max-width: 760px) {
+  .interests-overview {
+    margin-top: 68px;
+    padding: 58px 0 52px;
+  }
+
+  .interests-overview-head {
+    display: block;
+    padding-bottom: 24px;
+  }
+
+  .interests-overview-head h2 {
+    font-size: 38px;
+    margin-top: 13px;
+  }
+
+  .interests-overview-head > p {
+    font-size: 16px;
+    margin-top: 20px;
+  }
+
+  .interest-tab-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interest-tab,
+  .interest-tab + .interest-tab,
+  .interest-tab:last-child {
+    border-right: 0;
+    min-height: 146px;
+    padding: 20px 0;
+  }
+
+  .interest-tab strong {
+    font-size: 23px;
+    margin-top: 20px;
+  }
+
+  .interest-tab small {
+    font-size: 14px;
+  }
+
+  .interest-tab em {
+    bottom: 21px;
+    right: 0;
+  }
+
+  .interest-detail {
+    padding: 70px 0 76px;
+  }
+
+  .interest-detail-header {
+    padding-bottom: 30px;
+  }
+
+  .interest-detail-header h1 {
+    font-size: 54px;
+    margin: 20px 0 16px;
+  }
+
+  .interest-detail-subtitle {
+    font-size: 21px;
+  }
+
+  .interest-detail-layout {
+    display: block;
+    padding-top: 42px;
+  }
+
+  .interest-detail-description {
+    font-size: 18px;
+    line-height: 1.8;
+  }
+
+  .interest-detail-note {
+    margin-top: 42px;
+  }
+
+  .interest-detail-note > p {
+    font-size: 16px;
+  }
+
+  .interest-detail-aside {
+    margin-top: 48px;
+  }
+}
