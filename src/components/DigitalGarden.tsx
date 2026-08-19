@@ -69,8 +69,8 @@ const uiCopy = {
     projects: "项目成果",
     about: "关于我",
     contact: "联系",
-    notes: "全部笔记",
-    tags: "标签索引",
+    notes: "知识库",
+    tags: "主题",
     search: "搜索笔记、标签或关键词",
     searchResults: "搜索结果",
     latest: "最近更新",
@@ -89,6 +89,7 @@ const uiCopy = {
     notFound: "这页还没有长出来。",
     notFoundLead: "链接可能已经改变，也可能这篇笔记仍然藏在草稿里。",
     viewAll: "查看全部",
+    browseTopics: "浏览主题",
     explore: "进入花园",
     openProfile: "查看个人档案",
     viewProjects: "查看项目成果",
@@ -108,8 +109,8 @@ const uiCopy = {
     projects: "Projects",
     about: "About",
     contact: "Contact",
-    notes: "All notes",
-    tags: "Tag index",
+    notes: "Knowledge garden",
+    tags: "Topics",
     search: "Search notes, tags, or keywords",
     searchResults: "Search results",
     latest: "Latest updates",
@@ -128,6 +129,7 @@ const uiCopy = {
     notFound: "This page has not grown yet.",
     notFoundLead: "The link may have changed, or this note may still be a draft.",
     viewAll: "View all",
+    browseTopics: "Browse topics",
     explore: "Enter the garden",
     openProfile: "View profile",
     viewProjects: "View projects",
@@ -207,7 +209,6 @@ export function DigitalGarden({
   const [navOpen, setNavOpen] = useState(false);
   const copy = uiCopy[language];
   const publicNotes = getPublicNotes();
-  const allTags = getAllTags();
 
   useEffect(() => {
     const onHashChange = () => {
@@ -250,13 +251,11 @@ export function DigitalGarden({
           <GardenNavLink href="#/profile" active={route.kind === "profile"} onClick={closeNavigation}>{copy.profile}</GardenNavLink>
           <GardenNavLink href="#/projects" active={route.kind === "projects"} onClick={closeNavigation}>{copy.projects}</GardenNavLink>
           <span className="nav-label">{language === "zh" ? "知识库" : "Knowledge"}</span>
-          <GardenNavLink href="#/notes" active={route.kind === "notes" && !route.category} onClick={closeNavigation} count={publicNotes.length}>{copy.notes}</GardenNavLink>
           {(Object.keys(noteKindLabels[language]) as NoteKind[]).map((kind) => (
-            <GardenNavLink key={kind} href={`#/notes/${kind}`} active={route.kind === "notes" && route.category === kind} onClick={closeNavigation} indent count={getNotesByKind(kind).length}>
+            <GardenNavLink key={kind} href={`#/notes/${kind}`} active={route.kind === "notes" && route.category === kind} onClick={closeNavigation} category count={getNotesByKind(kind).length}>
               {noteKindLabels[language][kind]}
             </GardenNavLink>
           ))}
-          <GardenNavLink href="#/tags" active={route.kind === "tags" || route.kind === "tag"} onClick={closeNavigation} count={allTags.length}>{copy.tags}</GardenNavLink>
           <span className="nav-label">{language === "zh" ? "关于这个人" : "About the person"}</span>
           <GardenNavLink href="#/about" active={route.kind === "about"} onClick={closeNavigation}>{copy.about}</GardenNavLink>
           <GardenNavLink href="#/contact" active={route.kind === "contact"} onClick={closeNavigation}>{copy.contact}</GardenNavLink>
@@ -322,8 +321,8 @@ export function DigitalGarden({
   );
 }
 
-function GardenNavLink({ href, active, indent = false, count, onClick, children }: { href: string; active: boolean; indent?: boolean; count?: number; onClick: () => void; children: React.ReactNode }) {
-  return <a className={`garden-nav-link ${active ? "is-active" : ""} ${indent ? "is-indent" : ""}`} href={href} onClick={onClick}><span>{children}</span>{typeof count === "number" && <small>{String(count).padStart(2, "0")}</small>}</a>;
+function GardenNavLink({ href, active, category = false, count, onClick, children }: { href: string; active: boolean; category?: boolean; count?: number; onClick: () => void; children: React.ReactNode }) {
+  return <a className={`garden-nav-link ${active ? "is-active" : ""} ${category ? "is-category" : ""}`} href={href} onClick={onClick}><span>{children}</span>{typeof count === "number" && <small>{String(count).padStart(2, "0")}</small>}</a>;
 }
 
 function GardenPage({ route, profile, content, language, editable, onFieldChange, onListChange, onOpenChat, copy, publicNotes }: {
@@ -428,7 +427,8 @@ function NotesIndex({ category, language, copy, publicNotes }: { category?: Note
   const notesToShow = category ? publicNotes.filter((note) => note.type === category) : publicNotes;
   const title = category ? noteKindLabels[language][category] : copy.notes;
   const description = category ? noteKindDescriptions[language][category] : language === "zh" ? "这里记录问题、练习、阅读和仍在变化的判断。" : "Questions, experiments, readings, and judgments that are still changing.";
-  return <div className="notes-page"><PageIntro eyebrow={category ? `0${Object.keys(noteKindLabels[language]).indexOf(category) + 1}` : "INDEX"} title={title} intro={description} /><div className="notes-filter-row"><span>{String(notesToShow.length).padStart(2, "0")} {language === "zh" ? "篇笔记" : "notes"}</span><div>{!category && (Object.keys(noteKindLabels[language]) as NoteKind[]).map((kind) => <a key={kind} className="filter-chip" href={`#/notes/${kind}`}>{noteKindLabels[language][kind]}</a>)}{category && <a className="filter-chip" href="#/notes">{copy.viewAll}</a>}</div></div><div className="notes-list">{notesToShow.map((note) => <NoteCard key={note.slug} note={note} language={language} copy={copy} />)}</div></div>;
+  const noteKinds = Object.keys(noteKindLabels[language]) as NoteKind[];
+  return <div className="notes-page"><PageIntro eyebrow={category ? `0${noteKinds.indexOf(category) + 1}` : "GARDEN"} title={title} intro={description} />{!category && <div className="knowledge-directory" aria-label={language === "zh" ? "知识库分类" : "Knowledge categories"}>{noteKinds.map((kind, index) => <a key={kind} className={`knowledge-category-link category-${kind}`} href={`#/notes/${kind}`}><span className="knowledge-category-index">0{index + 1}</span><span><strong>{noteKindLabels[language][kind]}</strong><small>{noteKindDescriptions[language][kind]}</small></span><span className="knowledge-category-arrow" aria-hidden="true">↗</span></a>)}<a className="knowledge-topics-link" href="#/tags"><span>{copy.browseTopics}</span><span aria-hidden="true">↗</span></a></div>}<div className="notes-filter-row"><span>{String(notesToShow.length).padStart(2, "0")} {language === "zh" ? "篇笔记" : "notes"}</span><div>{category && <a className="filter-chip" href="#/notes">{copy.notes}</a>}</div></div><div className="notes-list">{notesToShow.map((note) => <NoteCard key={note.slug} note={note} language={language} copy={copy} />)}</div></div>;
 }
 
 function NoteDetail({ note, language, copy, publicNotes }: { note?: GardenNote; language: Language; copy: (typeof uiCopy)[Language]; publicNotes: GardenNote[] }) {

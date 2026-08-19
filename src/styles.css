@@ -2617,3 +2617,347 @@ textarea.editable {
     max-width: none;
   }
 }
+
+/* Digital garden v2: editorial scale and clearer knowledge hierarchy. */
+.garden-sidebar {
+  padding: 32px 26px 26px;
+  width: 294px;
+}
+
+.garden-main {
+  margin-left: 294px;
+}
+
+.garden-content {
+  max-width: 1380px;
+  padding-left: clamp(32px, 5vw, 96px);
+  padding-right: clamp(32px, 5vw, 96px);
+}
+
+.sidebar-brand strong { font-size: 15px; }
+.sidebar-brand small { font-size: 11px; }
+
+.sidebar-nav {
+  gap: 5px;
+  margin-top: 58px;
+}
+
+.nav-label {
+  font-size: 10px;
+  margin: 28px 12px 9px;
+}
+
+.garden-nav-link {
+  font-size: 14px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.garden-nav-link.is-indent { font-size: 13px; }
+
+.garden-nav-link.is-category {
+  border-left: 2px solid transparent;
+  padding-left: 14px;
+}
+
+.garden-nav-link.is-category:hover,
+.garden-nav-link.is-category.is-active {
+  border-left-color: var(--orange);
+}
+
+.garden-nav-link small { font-size: 11px; }
+
+.garden-search {
+  min-height: 46px;
+  padding: 0 11px;
+}
+
+.garden-search input { font-size: 13px; }
+.garden-search kbd { font-size: 10px; }
+.search-results { top: 46px; }
+.search-results-head { font-size: 10px; padding: 12px; }
+.search-results a { padding: 12px; }
+.search-results a span { font-size: 13px; }
+.search-results a small,
+.search-results p { font-size: 11px; }
+.sidebar-foot,
+.garden-footer { font-size: 11px; }
+
+.garden-home-hero {
+  gap: 64px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  min-height: 640px;
+  padding: 108px 0 56px;
+}
+
+.home-hero-copy { max-width: 760px; }
+.garden-overline { font-size: 11px; margin-bottom: 32px; }
+
+.home-hero-copy h1 {
+  font-size: 104px;
+  line-height: 0.92;
+  margin-bottom: 32px;
+}
+
+.home-tagline { font-size: 40px; margin-bottom: 22px; }
+
+.home-intro {
+  font-size: 17px;
+  line-height: 1.9;
+  max-width: 680px;
+}
+
+.home-actions { gap: 14px; margin-top: 38px; }
+.garden-button { font-size: 14px; min-height: 48px; padding: 0 19px; }
+.text-button { font-size: 13px; }
+
+.signal-card {
+  padding: 23px;
+  width: 236px;
+}
+
+.signal-card-head { font-size: 10px; }
+.signal-card p { font-size: 14px; line-height: 1.7; }
+
+.home-stat {
+  min-height: 142px;
+  padding-top: 28px;
+}
+
+.home-stat strong { font-size: 42px; }
+.home-stat span { font-size: 14px; margin-top: 16px; }
+.garden-home-section { padding-top: 108px; }
+
+.garden-section-title {
+  margin-bottom: 27px;
+  padding-bottom: 18px;
+}
+
+.garden-section-title > div > span,
+.page-intro > span,
+.note-detail-type,
+.aside-label,
+.focus-index,
+.project-preview-index { font-size: 11px; }
+
+.garden-section-title h2 { font-size: 34px; margin-top: 10px; }
+.garden-section-title > a { font-size: 13px; }
+.latest-grid { gap: 20px; }
+
+.garden-note-card {
+  min-height: 286px;
+  padding: 27px;
+}
+
+.note-card-meta,
+.note-card-foot,
+.note-detail-meta,
+.notes-filter-row { font-size: 11px; }
+.note-type { font-size: 11px; }
+.garden-note-card h3 { font-size: 23px; margin: 32px 0 16px; }
+.garden-note-card p { font-size: 15px; line-height: 1.8; }
+.note-card-foot { padding-top: 18px; }
+
+.focus-note {
+  gap: 24px;
+  grid-template-columns: 42px 1fr;
+  padding: 18px 0;
+}
+
+.focus-note h3 { font-size: 23px; }
+.focus-note p { font-size: 15px; line-height: 1.8; }
+.focus-note a { font-size: 13px; }
+.project-preview { min-height: 90px; }
+.project-preview strong { font-size: 15px; }
+.project-preview small { font-size: 11px; }
+
+.notes-page,
+.tags-page,
+.note-detail,
+.not-found { padding: 116px 0 100px; }
+
+.page-intro {
+  max-width: 860px;
+  padding-bottom: 40px;
+}
+
+.page-intro h1 {
+  font-size: 82px;
+  line-height: 1;
+  margin: 24px 0 22px;
+}
+
+.page-intro p {
+  font-size: 18px;
+  line-height: 1.8;
+  max-width: 650px;
+}
+
+.knowledge-directory {
+  border-top: 1px solid var(--line);
+  margin: 44px 0 20px;
+  max-width: 920px;
+}
+
+.knowledge-category-link {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  min-height: 116px;
+  padding: 18px 4px;
+}
+
+.knowledge-category-link:hover strong,
+.knowledge-category-link:hover .knowledge-category-arrow { color: var(--orange); }
+
+.knowledge-category-index,
+.knowledge-category-arrow {
+  color: var(--teal);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.knowledge-category-link > span:nth-child(2) { min-width: 0; }
+.knowledge-category-link strong,
+.knowledge-category-link small { display: block; }
+.knowledge-category-link strong { color: var(--ink); font-size: 22px; }
+
+.knowledge-category-link small {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+  margin-top: 6px;
+}
+
+.category-learning .knowledge-category-index,
+.category-learning .knowledge-category-arrow { color: #9a6c26; }
+.category-reading .knowledge-category-index,
+.category-reading .knowledge-category-arrow { color: #9c594d; }
+
+.knowledge-topics-link {
+  align-items: center;
+  color: var(--teal);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.knowledge-topics-link:hover { color: var(--orange); }
+.notes-filter-row { padding: 26px 0 22px; }
+.filter-chip { font-size: 12px; padding: 9px 12px; }
+.notes-list { gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.notes-list .garden-note-card,
+.notes-list .garden-note-card:nth-child(even),
+.notes-list .garden-note-card:nth-child(n + 3) { border: 1px solid var(--line); }
+
+.back-link { font-size: 14px; margin-bottom: 60px; }
+.note-detail-header { max-width: 980px; padding-bottom: 42px; }
+.note-detail-type > span:last-child { font-size: 11px; }
+.note-detail-header h1 { font-size: 78px; line-height: 1.03; margin: 28px 0 22px; }
+.note-detail-summary { font-size: 19px; line-height: 1.8; margin-bottom: 28px; max-width: 760px; }
+
+.note-detail-layout {
+  gap: 100px;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  max-width: 1120px;
+  padding-top: 62px;
+}
+
+.markdown-body { font-size: 17px; line-height: 1.9; max-width: 72ch; }
+.markdown-body h2 { font-size: 32px; }
+.markdown-body h3 { font-size: 23px; }
+.markdown-body h2,
+.markdown-body h3 { margin: 52px 0 18px; }
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote,
+.markdown-body pre,
+.markdown-body table { margin-bottom: 28px; }
+.markdown-body th { font-size: 13px; }
+.note-detail-aside a,
+.note-detail-aside span:not(.aside-label) { font-size: 13px; line-height: 1.6; }
+.note-detail-next { margin-top: 96px; max-width: 980px; padding-top: 20px; }
+.note-detail-next span,
+.note-detail-next a { font-size: 13px; }
+.tag-cloud { gap: 0 28px; margin-top: 54px; max-width: 920px; }
+.tag-link { min-height: 76px; }
+.tag-link span { font-size: 16px; }
+.tag-link small { font-size: 12px; }
+
+@media (max-width: 1050px) {
+  .garden-sidebar { width: 262px; }
+  .garden-main { margin-left: 262px; }
+  .garden-content { padding-left: 38px; padding-right: 38px; }
+  .garden-home-hero { gap: 42px; grid-template-columns: minmax(0, 1fr) 210px; }
+  .home-hero-copy h1 { font-size: 88px; }
+  .home-tagline { font-size: 34px; }
+  .home-hero-aside { transform: none; }
+}
+
+@media (max-width: 760px) {
+  .garden-sidebar { padding: 18px 20px; width: 100%; }
+  .garden-main { margin-left: 0; }
+  .garden-content { padding-left: 22px; padding-right: 22px; }
+  .garden-nav-link { font-size: 15px; min-height: 46px; }
+  .garden-nav-link.is-indent { font-size: 14px; }
+  .garden-search input { font-size: 14px; }
+  .garden-footer { font-size: 11px; margin-left: 22px; margin-right: 22px; }
+  .garden-home-hero { padding: 70px 0 42px; }
+  .garden-overline { font-size: 10px; margin-bottom: 25px; }
+  .home-hero-copy h1 { font-size: 62px; line-height: 0.96; margin-bottom: 24px; }
+  .home-tagline { font-size: 28px; }
+  .home-intro { font-size: 16px; line-height: 1.85; }
+  .home-actions { align-items: stretch; flex-direction: column; margin-top: 30px; }
+  .garden-button { font-size: 14px; width: 100%; }
+  .text-button { align-self: start; font-size: 14px; }
+  .home-stat { min-height: 112px; padding-top: 20px; }
+  .home-stat + .home-stat { padding-left: 12px; }
+  .home-stat strong { font-size: 30px; }
+  .home-stat span { font-size: 12px; line-height: 1.45; margin-top: 12px; }
+  .garden-home-section { padding-top: 72px; }
+  .garden-section-title h2 { font-size: 27px; }
+  .garden-section-title > a { font-size: 12px; }
+  .latest-grid,
+  .home-lower-grid,
+  .notes-list,
+  .tag-cloud { grid-template-columns: 1fr; }
+  .garden-note-card { min-height: 250px; padding: 22px; }
+  .garden-note-card h3 { font-size: 22px; margin-top: 27px; }
+  .garden-note-card p { font-size: 16px; }
+  .notes-page,
+  .tags-page,
+  .note-detail,
+  .not-found { padding: 70px 0 76px; }
+  .page-intro { padding-bottom: 28px; }
+  .page-intro h1 { font-size: 54px; line-height: 1.03; margin: 18px 0 17px; }
+  .page-intro p { font-size: 17px; line-height: 1.8; }
+  .knowledge-directory { margin-top: 34px; }
+  .knowledge-category-link { gap: 14px; grid-template-columns: 34px minmax(0, 1fr) auto; min-height: 104px; padding: 15px 2px; }
+  .knowledge-category-index,
+  .knowledge-category-arrow { font-size: 11px; }
+  .knowledge-category-link strong { font-size: 19px; }
+  .knowledge-category-link small { font-size: 14px; line-height: 1.6; }
+  .knowledge-topics-link { font-size: 14px; }
+  .notes-filter-row { align-items: start; flex-direction: column; gap: 14px; }
+  .notes-filter-row > div { justify-content: start; }
+  .notes-list { border-top: 0; gap: 14px; }
+  .notes-list .garden-note-card,
+  .notes-list .garden-note-card:nth-child(even),
+  .notes-list .garden-note-card:nth-child(n + 3) { border: 1px solid var(--line); }
+  .back-link { font-size: 14px; margin-bottom: 42px; }
+  .note-detail-header h1 { font-size: 50px; }
+  .note-detail-summary { font-size: 18px; }
+  .note-detail-layout { display: block; padding-top: 42px; }
+  .markdown-body { font-size: 16px; line-height: 1.85; }
+  .markdown-body h2 { font-size: 28px; }
+  .markdown-body h3 { font-size: 21px; }
+  .note-detail-aside { margin-top: 48px; }
+  .tag-link { min-height: 68px; }
+}
