@@ -1,6 +1,7 @@
 ---
 title: SQL 窗口函数学习记录
 status: editing
+publish: false
 date: 2026-08-16
 updated: 2026-08-18
 summary: 用一个小练习理解窗口函数如何在保留行粒度的同时完成排名、累计和分组比较。

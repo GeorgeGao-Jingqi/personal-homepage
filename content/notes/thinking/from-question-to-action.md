@@ -1,6 +1,7 @@
 ---
 title: 从问题到行动：我的分析思考框架
 status: published
+publish: true
 date: 2026-08-15
 updated: 2026-08-16
 summary: 把一次分析拆成问题、证据、解释和行动四个阶段，可以减少无效取数和过度解读。

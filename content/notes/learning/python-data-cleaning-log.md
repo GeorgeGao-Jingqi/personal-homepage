@@ -1,6 +1,7 @@
 ---
 title: Python 数据清洗练习记录
 status: published
+publish: true
 date: 2026-08-12
 updated: 2026-08-14
 summary: 记录一次从字段检查、缺失值处理到结果复核的最小清洗流程。

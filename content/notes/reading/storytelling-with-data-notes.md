@@ -1,6 +1,7 @@
 ---
 title: Storytelling with Data 阅读笔记
 status: published
+publish: true
 date: 2026-08-09
 updated: 2026-08-12
 summary: 阅读重点从“如何做出漂亮图表”转向“如何让读者更快理解重点”。

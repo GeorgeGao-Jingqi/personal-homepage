@@ -7,6 +7,7 @@ export type GardenNote = {
   slug: string;
   type: NoteKind;
   status: NoteStatus;
+  publish: boolean;
   title: string;
   summary: string;
   date: string;

@@ -1,6 +1,7 @@
 ---
 title: 商业分析与量化研究阅读入口
 status: published
+publish: true
 date: 2026-08-06
 updated: 2026-08-10
 summary: 从商业问题、数据证据和模型假设三个方向建立长期阅读入口。

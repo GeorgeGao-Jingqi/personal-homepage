@@ -31,7 +31,11 @@ function parseRoute(hash: string): Route {
   return { kind: "home" };
 }
 
-const noteHref = (note: GardenNote) => `#/notes/${note.type}/${encodeURIComponent(note.slug)}`;
+const editorRoute = new URLSearchParams(window.location.search).get("edit") === "1";
+const gardenHref = (path = "") => `${import.meta.env.BASE_URL}garden/${path}`;
+const notesHref = (kind?: NoteKind) => editorRoute ? `#/notes${kind ? `/${kind}` : ""}` : gardenHref(kind ? `${kind}/` : "");
+const noteHref = (note: GardenNote) => editorRoute ? `#/notes/${note.type}/${encodeURIComponent(note.slug)}` : gardenHref(`${note.type}/${encodeURIComponent(note.slug)}.html`);
+const tagHref = (tag: string) => editorRoute ? `#/tags/${encodeURIComponent(tag)}` : gardenHref(`tags/${encodeURIComponent(tag)}.html`);
 const photoHref = (photo: Photo) => `#/photos/${photo.album}/${photo.slug}`;
 const formatDate = (value: string) => value.replace(/-/g, ".");
 
@@ -51,7 +55,7 @@ export function DigitalGarden({ content, editable, theme, onThemeToggle, documen
   return <div className="garden-app">
     <aside className="garden-sidebar">
       <a className="garden-brand" href="#/"><span>GG</span><strong>{copy.title}</strong></a>
-      <nav aria-label="主导航"><a href="#/" className={route.kind === "home" ? "active" : ""}>地图</a><a href="#/notes" className={route.kind === "notes" || route.kind === "note" || route.kind === "tags" || route.kind === "tag" ? "active" : ""}>知识库</a>{kinds.map((kind) => <a key={kind} className="nav-indent" href={`#/notes/${kind}`}>{labels[language][kind]} <small>{visibleNotes.filter((note) => note.type === kind).length}</small></a>)}<a href="#/tags">主题</a><a href="#/photos" className={route.kind === "photos" || route.kind === "album" || route.kind === "photo" ? "active" : ""}>摄影 <small>{visiblePhotos.length}</small></a></nav>
+      <nav aria-label="主导航"><a href="#/" className={route.kind === "home" ? "active" : ""}>地图</a><a href={notesHref()} className={route.kind === "notes" || route.kind === "note" || route.kind === "tags" || route.kind === "tag" ? "active" : ""}>知识库</a>{kinds.map((kind) => <a key={kind} className="nav-indent" href={notesHref(kind)}>{labels[language][kind]} <small>{visibleNotes.filter((note) => note.type === kind).length}</small></a>)}<a href={editorRoute ? "#/tags" : gardenHref("tags/")}>主题</a><a href="#/photos" className={route.kind === "photos" || route.kind === "album" || route.kind === "photo" ? "active" : ""}>摄影 <small>{visiblePhotos.length}</small></a></nav>
       {editable && <div className="editor-actions"><a href="#/new-note">+ 新建笔记</a><a href="#/new-photo">+ 上传照片</a></div>}
       <div className="sidebar-bottom"><button onClick={onThemeToggle} aria-label="切换亮暗主题">{theme === "light" ? "墨" : "纸"}</button><button onClick={() => setLanguage((current) => current === "zh" ? "en" : "zh")}>{language === "zh" ? "EN" : "中"}</button><span>{editable ? "LOCAL EDIT" : "READ ONLY"}</span></div>
     </aside>
@@ -76,7 +80,7 @@ function Page({ route, content, language, editable, visibleNotes, visiblePhotos,
 }
 
 function Home({ content, notes, photos, language }: { content: SiteContent[Language]; notes: GardenNote[]; photos: Photo[]; language: Language }) {
-  return <div className="page home"><p className="eyebrow">KNOWLEDGE MAP / 00</p><h1>{content.title}</h1><p className="lede">{content.subtitle}</p><p className="intro">{content.intro}</p><div className="stat-grid"><span><b>{String(notes.length).padStart(2, "0")}</b> 公开笔记</span><span><b>{String(getAllTags().filter((tag) => notes.some((note) => note.tags.includes(tag.name))).length).padStart(2, "0")}</b> 主题</span><span><b>{String(photos.length).padStart(2, "0")}</b> 摄影作品</span></div><Section title="最近写下的线索" href="#/notes"><div className="note-grid">{notes.slice(0, 4).map((note) => <NoteCard key={note.slug} note={note} language={language} />)}</div></Section><Section title="摄影精选" href="#/photos">{photos.length ? <div className="photo-grid compact">{photos.slice(0, 4).map((photo) => <PhotoCard key={photo.slug} photo={photo} />)}</div> : <Empty text="摄影作品将在这里出现。" />}</Section><footer>{content.contactLabel} · {content.contactValue}</footer></div>;
+  return <div className="page home"><p className="eyebrow">KNOWLEDGE MAP / 00</p><h1>{content.title}</h1><p className="lede">{content.subtitle}</p><p className="intro">{content.intro}</p><div className="stat-grid"><span><b>{String(notes.length).padStart(2, "0")}</b> 公开笔记</span><span><b>{String(getAllTags().filter((tag) => notes.some((note) => note.tags.includes(tag.name))).length).padStart(2, "0")}</b> 主题</span><span><b>{String(photos.length).padStart(2, "0")}</b> 摄影作品</span></div><Section title="最近写下的线索" href={notesHref()}><div className="note-grid">{notes.slice(0, 4).map((note) => <NoteCard key={note.slug} note={note} language={language} />)}</div></Section><Section title="摄影精选" href="#/photos">{photos.length ? <div className="photo-grid compact">{photos.slice(0, 4).map((photo) => <PhotoCard key={photo.slug} photo={photo} />)}</div> : <Empty text="摄影作品将在这里出现。" />}</Section><footer>{content.contactLabel} · {content.contactValue}</footer></div>;
 }
 
 function Section({ title, href, children }: { title: string; href: string; children: React.ReactNode }) { return <section><div className="section-title"><h2>{title}</h2><a href={href}>查看全部 ↗</a></div>{children}</section>; }
@@ -84,7 +88,7 @@ function Empty({ text }: { text: string }) { return <p className="empty">{text}<
 function NoteCard({ note, language }: { note: GardenNote; language: Language }) { return <article className="note-card"><div><span>{labels[language][note.type]}</span><time>{formatDate(note.updated)}</time></div><h3><a href={noteHref(note)}>{note.title}</a></h3><p>{note.summary}</p><small>{note.tags.map((tag) => `#${tag}`).join(" ")}</small></article>; }
 
 function NotesIndex({ notes, language, category, title }: { notes: GardenNote[]; language: Language; category?: NoteKind; title?: string }) { const shown = category ? notes.filter((note) => note.type === category) : notes; return <div className="page"><p className="eyebrow">KNOWLEDGE / {category ? labels[language][category].toUpperCase() : "ALL"}</p><h1>{title ?? (category ? labels[language][category] : "知识库")}</h1><p className="lede">{shown.length} 篇可公开的线索与记录。</p><div className="note-grid">{shown.map((note) => <NoteCard key={note.slug} note={note} language={language} />)}</div>{!shown.length && <Empty text="这里还没有公开笔记。" />}</div>; }
-function TagsPage({ notes }: { notes: GardenNote[] }) { const tags = new Map<string, number>(); notes.forEach((note) => note.tags.forEach((tag) => tags.set(tag, (tags.get(tag) ?? 0) + 1))); return <div className="page"><p className="eyebrow">KNOWLEDGE MAP</p><h1>主题</h1><div className="tag-cloud">{[...tags].sort().map(([tag, count]) => <a key={tag} href={`#/tags/${encodeURIComponent(tag)}`}>#{tag}<small>{count}</small></a>)}</div></div>; }
+function TagsPage({ notes }: { notes: GardenNote[] }) { const tags = new Map<string, number>(); notes.forEach((note) => note.tags.forEach((tag) => tags.set(tag, (tags.get(tag) ?? 0) + 1))); return <div className="page"><p className="eyebrow">KNOWLEDGE MAP</p><h1>主题</h1><div className="tag-cloud">{[...tags].sort().map(([tag, count]) => <a key={tag} href={tagHref(tag)}>#{tag}<small>{count}</small></a>)}</div></div>; }
 
 function NotePage({ note, editable, language, documents, onLoad, onSave }: { note?: GardenNote; editable: boolean; language: Language; documents: Record<string, GardenNoteDocument>; onLoad: (note: GardenNote) => Promise<void>; onSave: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean> }) {
   useEffect(() => { if (editable && note) void onLoad(note); }, [editable, note?.slug]);

@@ -1,6 +1,7 @@
 ---
 title: 为什么数据分析不只是做图表
 status: published
+publish: true
 date: 2026-08-18
 updated: 2026-08-18
 summary: 图表是表达层，分析真正要解决的是判断和行动之间的距离。

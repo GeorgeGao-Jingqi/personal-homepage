@@ -47,12 +47,13 @@ function parseNote(filePath: string, rawContent: string): GardenNote | null {
   const date = normalizeDate(data.date);
   const updated = normalizeDate(data.updated ?? data.date);
 
-  if (!type || !status || !title || !summary || !date || !updated || !Array.isArray(data.tags) || !Array.isArray(data.related)) return null;
+  if (!type || !status || typeof data.publish !== "boolean" || !title || !summary || !date || !updated || !Array.isArray(data.tags) || !Array.isArray(data.related)) return null;
 
   return {
     slug,
     type,
     status,
+    publish: data.publish,
     title,
     summary,
     date,

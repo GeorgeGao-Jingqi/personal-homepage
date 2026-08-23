@@ -1,6 +1,7 @@
 ---
 title: 统计学与业务分析学习路线
 status: published
+publish: true
 date: 2026-08-10
 updated: 2026-08-13
 summary: 把统计学知识放回业务问题中学习，先建立判断框架，再补充方法细节。

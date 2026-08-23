@@ -1,6 +1,7 @@
 ---
 title: 我如何判断一个指标是否值得追踪
 status: editing
+publish: false
 date: 2026-08-17
 updated: 2026-08-17
 summary: 指标不是越多越好，它应该能帮助团队识别变化、解释原因或做出取舍。
