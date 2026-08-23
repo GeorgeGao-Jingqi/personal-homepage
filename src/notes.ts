@@ -71,7 +71,7 @@ export const notes: GardenNote[] = Object.entries(rawNoteFiles)
   .sort((left, right) => right.updated.localeCompare(left.updated));
 
 export function getPublicNotes(): GardenNote[] {
-  return notes.filter((note) => note.status === "published" || note.status === "editing");
+  return notes.filter((note) => note.status === "published");
 }
 
 export function getNotesByKind(kind: NoteKind): GardenNote[] {

@@ -1,528 +1,104 @@
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  ContactSection,
-  ExperienceSection,
-  HeroSection,
-  ProjectsSection,
-  SkillsSection,
-  StorySection,
-} from "./ProfileSections";
-import { EditableText } from "./EditableText";
-import { findNote, findRelatedNotes, getAllTags, getNotesByKind, getPublicNotes, notes } from "../notes";
-import type {
-  Content,
-  EditableListKey,
-  GardenNote,
-  GardenNoteDocument,
-  Interest,
-  Language,
-  NoteKind,
-  ProfileContent,
-  ProfileTextField,
-  Project,
-} from "../types";
-
-type ProfileSurfaceProps = {
-  profile: ProfileContent;
-  language: Language;
-  editable: boolean;
-  onFieldChange: (field: ProfileTextField, value: string) => void;
-  onListChange: (key: EditableListKey, index: number, field: string, value: string) => void;
-  onOpenChat: () => void;
-};
+import { albums, findAlbum, findPhoto, getPublicPhotos, photos, photosForAlbum } from "../photos";
+import { findNote, findRelatedNotes, getAllTags, getPublicNotes, notes } from "../notes";
+import type { GardenNote, GardenNoteDocument, Language, NoteKind, Photo, SiteContent } from "../types";
 
 type Route =
-  | { kind: "home" }
-  | { kind: "profile" }
-  | { kind: "projects" }
-  | { kind: "about" }
-  | { kind: "contact" }
-  | { kind: "interest"; slug: string }
-  | { kind: "notes"; category?: NoteKind }
-  | { kind: "note"; slug: string }
-  | { kind: "tags" }
-  | { kind: "tag"; tag: string };
+  | { kind: "home" } | { kind: "notes"; category?: NoteKind } | { kind: "note"; type: NoteKind; slug: string }
+  | { kind: "tags" } | { kind: "tag"; tag: string } | { kind: "photos" } | { kind: "album"; album: string }
+  | { kind: "photo"; album: string; slug: string } | { kind: "new-note" } | { kind: "new-photo" };
 
-type NoteEditingProps = {
-  noteDocuments: Record<string, GardenNoteDocument>;
-  onLoadNoteDocument: (note: GardenNote) => void;
-  onNoteDocumentChange: (note: GardenNote, document: GardenNoteDocument) => void;
+const kinds: NoteKind[] = ["thinking", "learning", "reading"];
+const labels: Record<Language, Record<NoteKind, string>> = {
+  zh: { thinking: "思考", learning: "学习", reading: "阅读" },
+  en: { thinking: "Thinking", learning: "Learning", reading: "Reading" },
 };
-
-const noteKindLabels: Record<Language, Record<NoteKind, string>> = {
-  zh: { thinking: "Thinking Notes", learning: "Learning Log", reading: "Reading Notes" },
-  en: { thinking: "Thinking Notes", learning: "Learning Log", reading: "Reading Notes" },
-};
-
-const noteKindDescriptions: Record<Language, Record<NoteKind, string>> = {
-  zh: {
-    thinking: "把问题拆开，记录我如何形成判断。",
-    learning: "记录正在学习的工具、方法和小实验。",
-    reading: "留下书籍、文章和研究材料的可复用摘记。",
-  },
-  en: {
-    thinking: "Questions, frameworks, and the reasoning behind my judgments.",
-    learning: "Small experiments with tools, methods, and ideas in progress.",
-    reading: "Reusable notes from books, essays, and research materials.",
-  },
-};
-
-const uiCopy = {
-  zh: {
-    garden: "个人数字花园",
-    subtitle: "一份持续生长的分析工作台",
-    home: "首页",
-    profile: "个人档案",
-    projects: "项目成果",
-    about: "关于我",
-    contact: "联系",
-    interests: "兴趣爱好",
-    notes: "知识库",
-    tags: "主题",
-    search: "搜索笔记、标签或关键词",
-    searchResults: "搜索结果",
-    latest: "最近更新",
-    featured: "精选项目",
-    currentFocus: "当前关注",
-    knowledgeMap: "知识地图",
-    updated: "更新于",
-    read: "阅读笔记",
-    back: "返回笔记列表",
-    related: "相关笔记",
-    source: "参考来源",
-    statusEditing: "编辑中",
-    statusPublished: "已发布",
-    readTime: "分钟阅读",
-    noResults: "暂时没有匹配内容。",
-    notFound: "这页还没有长出来。",
-    notFoundLead: "链接可能已经改变，也可能这篇笔记仍然藏在草稿里。",
-    viewAll: "查看全部",
-    browseTopics: "浏览主题",
-    explore: "进入花园",
-    openProfile: "查看个人档案",
-    viewProjects: "查看项目成果",
-    question: "我正在追问",
-    signal: "更新信号",
-    notesCount: "篇公开笔记",
-    tagsCount: "个主题标签",
-    categories: "个内容分区",
-    menu: "打开导航",
-    closeMenu: "关闭导航",
-    interestBack: "返回关于这个人",
-    interestIndex: "INTERESTS",
-  },
-  en: {
-    garden: "Personal Digital Garden",
-    subtitle: "A growing workspace for analytical thinking",
-    home: "Home",
-    profile: "Profile",
-    projects: "Projects",
-    about: "About",
-    contact: "Contact",
-    interests: "Interests",
-    notes: "Knowledge garden",
-    tags: "Topics",
-    search: "Search notes, tags, or keywords",
-    searchResults: "Search results",
-    latest: "Latest updates",
-    featured: "Featured projects",
-    currentFocus: "Current focus",
-    knowledgeMap: "Knowledge map",
-    updated: "Updated",
-    read: "Read note",
-    back: "Back to notes",
-    related: "Related notes",
-    source: "Source",
-    statusEditing: "Editing",
-    statusPublished: "Published",
-    readTime: "min read",
-    noResults: "No matching notes yet.",
-    notFound: "This page has not grown yet.",
-    notFoundLead: "The link may have changed, or this note may still be a draft.",
-    viewAll: "View all",
-    browseTopics: "Browse topics",
-    explore: "Enter the garden",
-    openProfile: "View profile",
-    viewProjects: "View projects",
-    question: "Question in progress",
-    signal: "Update signal",
-    notesCount: "public notes",
-    tagsCount: "topic tags",
-    categories: "content areas",
-    menu: "Open navigation",
-    closeMenu: "Close navigation",
-    interestBack: "Back to about",
-    interestIndex: "INTERESTS",
-  },
-} as const;
 
 function parseRoute(hash: string): Route {
-  const path = hash.replace(/^#\/?/, "");
-  const segments = path.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment));
-  if (segments.length === 0) return { kind: "home" };
-  if (segments[0] === "profile") return { kind: "profile" };
-  if (segments[0] === "projects") return { kind: "projects" };
-  if (segments[0] === "about") return { kind: "about" };
-  if (segments[0] === "contact") return { kind: "contact" };
-  if (segments[0] === "interests" && segments[1]) return { kind: "interest", slug: segments[1] };
-  if (segments[0] === "tags" && segments[1]) return { kind: "tag", tag: segments[1] };
-  if (segments[0] === "tags") return { kind: "tags" };
-  if (segments[0] === "notes" && segments[1] && segments[2]) return { kind: "note", slug: segments[2] };
-  if (segments[0] === "notes" && segments[1]) {
-    const category = segments[1] as NoteKind;
-    return category === "thinking" || category === "learning" || category === "reading"
-      ? { kind: "notes", category }
-      : { kind: "notes" };
-  }
-  if (segments[0] === "notes") return { kind: "notes" };
+  const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+  if (!parts.length) return { kind: "home" };
+  if (parts[0] === "notes" && kinds.includes(parts[1] as NoteKind) && parts[2]) return { kind: "note", type: parts[1] as NoteKind, slug: parts[2] };
+  if (parts[0] === "notes") return { kind: "notes", category: kinds.includes(parts[1] as NoteKind) ? parts[1] as NoteKind : undefined };
+  if (parts[0] === "tags" && parts[1]) return { kind: "tag", tag: parts[1] };
+  if (parts[0] === "tags") return { kind: "tags" };
+  if (parts[0] === "photos" && parts[1] && parts[2]) return { kind: "photo", album: parts[1], slug: parts[2] };
+  if (parts[0] === "photos" && parts[1]) return { kind: "album", album: parts[1] };
+  if (parts[0] === "photos") return { kind: "photos" };
+  if (parts[0] === "new-note") return { kind: "new-note" };
+  if (parts[0] === "new-photo") return { kind: "new-photo" };
   return { kind: "home" };
 }
 
-function noteHref(note: GardenNote): string {
-  return `#/notes/${note.type}/${encodeURIComponent(note.slug)}`;
-}
+const noteHref = (note: GardenNote) => `#/notes/${note.type}/${encodeURIComponent(note.slug)}`;
+const photoHref = (photo: Photo) => `#/photos/${photo.album}/${photo.slug}`;
+const formatDate = (value: string) => value.replace(/-/g, ".");
 
-function formatDate(value: string, language: Language): string {
-  if (!value) return "";
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
-function estimateReadTime(body: string): number {
-  const chineseCharacters = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
-  const words = body.replace(/[\u4e00-\u9fff]/g, " ").trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(chineseCharacters / 420 + words / 190));
-}
-
-export function DigitalGarden({
-  content,
-  profile,
-  language,
-  editable,
-  onFieldChange,
-  onListChange,
-  onOpenChat,
-  onToggleLanguage,
-  isEditMode,
-  editStatus,
-  onResetContent,
-  noteDocuments,
-  onLoadNoteDocument,
-  onNoteDocumentChange,
-}: ProfileSurfaceProps & NoteEditingProps & {
-  content: Content;
-  onToggleLanguage: () => void;
-  isEditMode: boolean;
-  editStatus: string;
-  onResetContent: () => void;
+export function DigitalGarden({ content, editable, theme, onThemeToggle, documents, onLoadNote, onSaveNote }: {
+  content: SiteContent; editable: boolean; theme: "light" | "dark"; onThemeToggle: () => void;
+  documents: Record<string, GardenNoteDocument>; onLoadNote: (note: GardenNote) => Promise<void>; onSaveNote: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean>;
 }) {
+  const [language, setLanguage] = useState<Language>("zh");
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
-  const [search, setSearch] = useState("");
-  const [navOpen, setNavOpen] = useState(false);
-  const copy = uiCopy[language];
-  const publicNotes = getPublicNotes();
+  const [query, setQuery] = useState("");
+  const visibleNotes = editable ? notes : getPublicNotes();
+  const visiblePhotos = editable ? photos : getPublicPhotos();
+  const copy = content[language];
+  useEffect(() => { const update = () => setRoute(parseRoute(window.location.hash)); addEventListener("hashchange", update); return () => removeEventListener("hashchange", update); }, []);
+  const results = useMemo(() => !query.trim() ? [] : visibleNotes.filter((note) => `${note.title} ${note.summary} ${note.tags.join(" ")}`.toLowerCase().includes(query.toLowerCase())).slice(0, 6), [query, visibleNotes]);
 
-  useEffect(() => {
-    const onHashChange = () => {
-      setRoute(parseRoute(window.location.hash));
-      setNavOpen(false);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-
-  const searchResults = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return [];
-    return publicNotes.filter((note) => [note.title, note.summary, note.tags.join(" "), note.body].join(" ").toLowerCase().includes(query)).slice(0, 6);
-  }, [publicNotes, search]);
-
-  function closeNavigation() {
-    setNavOpen(false);
-  }
-
-  return (
-    <div className="garden-shell">
-      <aside className={`garden-sidebar ${navOpen ? "is-open" : ""}`}>
-        <div className="sidebar-head">
-          <a className="sidebar-brand" href="#/" onClick={closeNavigation}>
-            <span className="sidebar-mark" aria-hidden="true">GG</span>
-            <span>
-              <strong>{profile.name}</strong>
-              <small>{copy.garden}</small>
-            </span>
-          </a>
-          <button className="sidebar-menu-toggle" type="button" onClick={() => setNavOpen((current) => !current)} aria-label={navOpen ? copy.closeMenu : copy.menu} aria-expanded={navOpen}>
-            <span aria-hidden="true">{navOpen ? "×" : "☰"}</span>
-          </button>
-        </div>
-
-        <div className="sidebar-nav">
-          <GardenNavLink href="#/" active={route.kind === "home"} onClick={closeNavigation}>{copy.home}</GardenNavLink>
-          <GardenNavLink href="#/profile" active={route.kind === "profile"} onClick={closeNavigation}>{copy.profile}</GardenNavLink>
-          <GardenNavLink href="#/projects" active={route.kind === "projects"} onClick={closeNavigation}>{copy.projects}</GardenNavLink>
-          <span className="nav-label">{language === "zh" ? "知识库" : "Knowledge"}</span>
-          {(Object.keys(noteKindLabels[language]) as NoteKind[]).map((kind) => (
-            <GardenNavLink key={kind} href={`#/notes/${kind}`} active={route.kind === "notes" && route.category === kind} onClick={closeNavigation} category count={getNotesByKind(kind).length}>
-              {noteKindLabels[language][kind]}
-            </GardenNavLink>
-          ))}
-          <span className="nav-label">{language === "zh" ? "关于这个人" : "About the person"}</span>
-          <GardenNavLink href="#/about" active={route.kind === "about"} onClick={closeNavigation}>{copy.about}</GardenNavLink>
-          <GardenNavLink href="#/contact" active={route.kind === "contact"} onClick={closeNavigation}>{copy.contact}</GardenNavLink>
-          <span className="nav-label">{copy.interests}</span>
-          {profile.interests.map((interest) => (
-            <GardenNavLink key={interest.slug} href={`#/interests/${encodeURIComponent(interest.slug)}`} active={route.kind === "interest" && route.slug === interest.slug} onClick={closeNavigation} category>
-              {interest.title}
-            </GardenNavLink>
-          ))}
-        </div>
-
-        <div className="sidebar-tools">
-          <label className="garden-search">
-            <span className="search-icon" aria-hidden="true">⌕</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={copy.search} aria-label={copy.search} />
-            <kbd>⌘ K</kbd>
-          </label>
-          {search.trim() && (
-            <div className="search-results">
-              <div className="search-results-head"><span>{copy.searchResults}</span><strong>{searchResults.length}</strong></div>
-              {searchResults.length > 0 ? searchResults.map((note) => (
-                <a key={note.slug} href={noteHref(note)} onClick={() => { setSearch(""); closeNavigation(); }}>
-                  <span>{note.title}</span>
-                  <small>{noteKindLabels[language][note.type]}</small>
-                </a>
-              )) : <p>{copy.noResults}</p>}
-            </div>
-          )}
-        </div>
-
-        <div className="sidebar-foot">
-          <button className="language-button" type="button" onClick={onToggleLanguage}>{language === "zh" ? "EN" : "中"}</button>
-          <span>{copy.subtitle}</span>
-        </div>
-      </aside>
-
-      <div className="garden-main">
-        <div className="mobile-contextbar">
-          <span>{route.kind === "note" ? copy.read : route.kind === "notes" ? (route.category ? noteKindLabels[language][route.category] : copy.notes) : copy.garden}</span>
-          <button type="button" onClick={onToggleLanguage}>{language === "zh" ? "EN" : "中"}</button>
-        </div>
-        {isEditMode && (
-          <aside className="edit-banner garden-edit-banner">
-            <span>{editStatus}</span>
-            <button type="button" onClick={onResetContent}>{language === "zh" ? "恢复默认" : "Reset"}</button>
-          </aside>
-        )}
-        <main className="garden-content">
-          <GardenPage
-            route={route}
-            profile={profile}
-            content={content}
-            language={language}
-            editable={editable}
-            onFieldChange={onFieldChange}
-            onListChange={onListChange}
-            onOpenChat={onOpenChat}
-            copy={copy}
-            publicNotes={publicNotes}
-            noteDocuments={noteDocuments}
-            onLoadNoteDocument={onLoadNoteDocument}
-            onNoteDocumentChange={onNoteDocumentChange}
-          />
-        </main>
-        <footer className="garden-footer">
-          <span>GG / {new Date().getFullYear()}</span>
-          <span>{copy.subtitle}</span>
-          <a href="#/contact">{copy.contact} ↗</a>
-        </footer>
-      </div>
-    </div>
-  );
+  return <div className="garden-app">
+    <aside className="garden-sidebar">
+      <a className="garden-brand" href="#/"><span>GG</span><strong>{copy.title}</strong></a>
+      <nav aria-label="主导航"><a href="#/" className={route.kind === "home" ? "active" : ""}>地图</a><a href="#/notes" className={route.kind === "notes" || route.kind === "note" || route.kind === "tags" || route.kind === "tag" ? "active" : ""}>知识库</a>{kinds.map((kind) => <a key={kind} className="nav-indent" href={`#/notes/${kind}`}>{labels[language][kind]} <small>{visibleNotes.filter((note) => note.type === kind).length}</small></a>)}<a href="#/tags">主题</a><a href="#/photos" className={route.kind === "photos" || route.kind === "album" || route.kind === "photo" ? "active" : ""}>摄影 <small>{visiblePhotos.length}</small></a></nav>
+      {editable && <div className="editor-actions"><a href="#/new-note">+ 新建笔记</a><a href="#/new-photo">+ 上传照片</a></div>}
+      <div className="sidebar-bottom"><button onClick={onThemeToggle} aria-label="切换亮暗主题">{theme === "light" ? "墨" : "纸"}</button><button onClick={() => setLanguage((current) => current === "zh" ? "en" : "zh")}>{language === "zh" ? "EN" : "中"}</button><span>{editable ? "LOCAL EDIT" : "READ ONLY"}</span></div>
+    </aside>
+    <main className="garden-main">
+      <header className="garden-topbar"><label><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={language === "zh" ? "搜索笔记、标签或关键词" : "Search notes, tags, or words"} /></label>{results.length > 0 && <div className="search-results">{results.map((note) => <a key={note.slug} href={noteHref(note)} onClick={() => setQuery("")}>{note.title}<small>{labels[language][note.type]}</small></a>)}</div>}</header>
+      <Page route={route} content={copy} language={language} editable={editable} visibleNotes={visibleNotes} visiblePhotos={visiblePhotos} documents={documents} onLoadNote={onLoadNote} onSaveNote={onSaveNote} />
+    </main>
+  </div>;
 }
 
-function GardenNavLink({ href, active, category = false, count, onClick, children }: { href: string; active: boolean; category?: boolean; count?: number; onClick: () => void; children: React.ReactNode }) {
-  return <a className={`garden-nav-link ${active ? "is-active" : ""} ${category ? "is-category" : ""}`} href={href} onClick={onClick}><span>{children}</span>{typeof count === "number" && <small>{String(count).padStart(2, "0")}</small>}</a>;
+function Page({ route, content, language, editable, visibleNotes, visiblePhotos, documents, onLoadNote, onSaveNote }: { route: Route; content: SiteContent[Language]; language: Language; editable: boolean; visibleNotes: GardenNote[]; visiblePhotos: Photo[]; documents: Record<string, GardenNoteDocument>; onLoadNote: (note: GardenNote) => Promise<void>; onSaveNote: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean> }) {
+  if (route.kind === "notes") return <NotesIndex notes={visibleNotes} language={language} category={route.category} />;
+  if (route.kind === "note") return <NotePage note={(editable ? notes : getPublicNotes()).find((item) => item.type === route.type && item.slug === route.slug)} editable={editable} language={language} documents={documents} onLoad={onLoadNote} onSave={onSaveNote} />;
+  if (route.kind === "tags") return <TagsPage notes={visibleNotes} />;
+  if (route.kind === "tag") return <NotesIndex notes={visibleNotes.filter((note) => note.tags.includes(route.tag))} language={language} title={`#${route.tag}`} />;
+  if (route.kind === "photos") return <PhotosIndex photos={visiblePhotos} />;
+  if (route.kind === "album") return <AlbumPage album={findAlbum(route.album)} photos={photosForAlbum(route.album, editable)} />;
+  if (route.kind === "photo") return <PhotoPage photo={findPhoto(route.album, route.slug, editable)} photos={photosForAlbum(route.album, editable)} />;
+  if (route.kind === "new-note") return <NewNote />;
+  if (route.kind === "new-photo") return <NewPhoto />;
+  return <Home content={content} notes={visibleNotes} photos={visiblePhotos} language={language} />;
 }
 
-function GardenPage({ route, profile, content, language, editable, onFieldChange, onListChange, onOpenChat, copy, publicNotes, noteDocuments, onLoadNoteDocument, onNoteDocumentChange }: ProfileSurfaceProps & NoteEditingProps & {
-  route: Route;
-  content: Content;
-  copy: (typeof uiCopy)[Language];
-  publicNotes: GardenNote[];
-}) {
-  if (route.kind === "note") {
-    const note = findNote(route.slug);
-    return <NoteDetail note={note} language={language} copy={copy} publicNotes={publicNotes} editable={editable} noteDocument={note ? noteDocuments[noteDocumentKey(note)] : undefined} onLoadNoteDocument={onLoadNoteDocument} onNoteDocumentChange={onNoteDocumentChange} />;
-  }
-  if (route.kind === "notes") return <NotesIndex category={route.category} language={language} copy={copy} publicNotes={publicNotes} />;
-  if (route.kind === "tags") return <TagsIndex language={language} copy={copy} />;
-  if (route.kind === "tag") return <TagDetail tag={route.tag} language={language} copy={copy} publicNotes={publicNotes} />;
-  if (route.kind === "interest") return <InterestDetail interest={profile.interests.find((item) => item.slug === route.slug)} profile={profile} language={language} editable={editable} onListChange={onListChange} copy={copy} />;
-  if (route.kind === "home") return <GardenHome profile={profile} language={language} copy={copy} publicNotes={publicNotes} editable={editable} onFieldChange={onFieldChange} onOpenChat={onOpenChat} />;
-
-  return <ProfileSurface section={route.kind} profile={profile} language={language} editable={editable} onFieldChange={onFieldChange} onListChange={onListChange} onOpenChat={onOpenChat} content={content} />;
+function Home({ content, notes, photos, language }: { content: SiteContent[Language]; notes: GardenNote[]; photos: Photo[]; language: Language }) {
+  return <div className="page home"><p className="eyebrow">KNOWLEDGE MAP / 00</p><h1>{content.title}</h1><p className="lede">{content.subtitle}</p><p className="intro">{content.intro}</p><div className="stat-grid"><span><b>{String(notes.length).padStart(2, "0")}</b> 公开笔记</span><span><b>{String(getAllTags().filter((tag) => notes.some((note) => note.tags.includes(tag.name))).length).padStart(2, "0")}</b> 主题</span><span><b>{String(photos.length).padStart(2, "0")}</b> 摄影作品</span></div><Section title="最近写下的线索" href="#/notes"><div className="note-grid">{notes.slice(0, 4).map((note) => <NoteCard key={note.slug} note={note} language={language} />)}</div></Section><Section title="摄影精选" href="#/photos">{photos.length ? <div className="photo-grid compact">{photos.slice(0, 4).map((photo) => <PhotoCard key={photo.slug} photo={photo} />)}</div> : <Empty text="摄影作品将在这里出现。" />}</Section><footer>{content.contactLabel} · {content.contactValue}</footer></div>;
 }
 
-function GardenHome({ profile, language, copy, publicNotes, editable, onFieldChange, onOpenChat }: {
-  profile: ProfileContent;
-  language: Language;
-  copy: (typeof uiCopy)[Language];
-  publicNotes: GardenNote[];
-  editable: boolean;
-  onFieldChange: ProfileSurfaceProps["onFieldChange"];
-  onOpenChat: () => void;
-}) {
-  const latestNotes = publicNotes.slice(0, 4);
-  return (
-    <div className="home-page">
-      <section className="garden-home-hero">
-        <div className="home-hero-copy">
-          <div className="garden-overline"><span className="status-dot" /> {copy.garden} <span className="mono">/ 00</span></div>
-          <EditableText value={profile.name} onChange={(value) => onFieldChange("name", value)} editable={editable} as="h1" />
-          <EditableText value={profile.tagline} onChange={(value) => onFieldChange("tagline", value)} editable={editable} as="p" className="home-tagline" multiline />
-          <EditableText value={profile.intro} onChange={(value) => onFieldChange("intro", value)} editable={editable} as="p" className="home-intro" multiline />
-          <div className="home-actions">
-            <a className="garden-button garden-button-dark" href="#/notes">{copy.explore} <span aria-hidden="true">↗</span></a>
-            <a className="garden-button garden-button-light" href="#/profile">{copy.openProfile}</a>
-            <button className="text-button" type="button" onClick={onOpenChat}>{profile.aiTitle} <span aria-hidden="true">+</span></button>
-          </div>
-        </div>
-        <div className="home-hero-aside">
-          <div className="signal-card">
-            <div className="signal-card-head"><span>{copy.signal}</span><span className="mono">LIVE</span></div>
-            <div className="signal-bars" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div>
-            <p>{language === "zh" ? "正在把问题、学习和阅读整理成可回看的线索。" : "Turning questions, learning, and reading into traceable threads."}</p>
-          </div>
-          <div className="home-hero-index"><span>GG</span><small>ANALYTICS<br />GARDEN</small></div>
-        </div>
-      </section>
+function Section({ title, href, children }: { title: string; href: string; children: React.ReactNode }) { return <section><div className="section-title"><h2>{title}</h2><a href={href}>查看全部 ↗</a></div>{children}</section>; }
+function Empty({ text }: { text: string }) { return <p className="empty">{text}</p>; }
+function NoteCard({ note, language }: { note: GardenNote; language: Language }) { return <article className="note-card"><div><span>{labels[language][note.type]}</span><time>{formatDate(note.updated)}</time></div><h3><a href={noteHref(note)}>{note.title}</a></h3><p>{note.summary}</p><small>{note.tags.map((tag) => `#${tag}`).join(" ")}</small></article>; }
 
-      <section className="home-stats" aria-label={copy.knowledgeMap}>
-        <Stat value={String(publicNotes.length).padStart(2, "0")} label={copy.notesCount} />
-        <Stat value={String(getAllTags().length).padStart(2, "0")} label={copy.tagsCount} />
-        <Stat value="03" label={copy.categories} />
-      </section>
+function NotesIndex({ notes, language, category, title }: { notes: GardenNote[]; language: Language; category?: NoteKind; title?: string }) { const shown = category ? notes.filter((note) => note.type === category) : notes; return <div className="page"><p className="eyebrow">KNOWLEDGE / {category ? labels[language][category].toUpperCase() : "ALL"}</p><h1>{title ?? (category ? labels[language][category] : "知识库")}</h1><p className="lede">{shown.length} 篇可公开的线索与记录。</p><div className="note-grid">{shown.map((note) => <NoteCard key={note.slug} note={note} language={language} />)}</div>{!shown.length && <Empty text="这里还没有公开笔记。" />}</div>; }
+function TagsPage({ notes }: { notes: GardenNote[] }) { const tags = new Map<string, number>(); notes.forEach((note) => note.tags.forEach((tag) => tags.set(tag, (tags.get(tag) ?? 0) + 1))); return <div className="page"><p className="eyebrow">KNOWLEDGE MAP</p><h1>主题</h1><div className="tag-cloud">{[...tags].sort().map(([tag, count]) => <a key={tag} href={`#/tags/${encodeURIComponent(tag)}`}>#{tag}<small>{count}</small></a>)}</div></div>; }
 
-      <section className="garden-home-section">
-        <GardenSectionTitle eyebrow={copy.latest} title={language === "zh" ? "最近写下的线索" : "Recent threads"} href="#/notes" linkLabel={copy.viewAll} />
-        <div className="latest-grid">
-          {latestNotes.map((note) => <NoteCard key={note.slug} note={note} language={language} copy={copy} />)}
-        </div>
-      </section>
-
-      <section className="garden-home-section home-lower-grid">
-        <div>
-          <GardenSectionTitle eyebrow={copy.currentFocus} title={language === "zh" ? "把分析变成行动" : "Make analysis useful"} />
-          <div className="focus-note"><span className="focus-index">01</span><div><h3>{profile.experience[0]?.title}</h3><p>{profile.experience[0]?.detail}</p><a href="#/about">{copy.about} ↗</a></div></div>
-        </div>
-        <div>
-          <GardenSectionTitle eyebrow={copy.featured} title={profile.projectsTitle} href="#/projects" linkLabel={copy.viewAll} />
-          <div className="featured-project-list">{profile.projects.slice(0, 2).map((project, index) => <ProjectPreview key={`${project.title}-${index}`} project={project} index={index} />)}</div>
-        </div>
-      </section>
-    </div>
-  );
+function NotePage({ note, editable, language, documents, onLoad, onSave }: { note?: GardenNote; editable: boolean; language: Language; documents: Record<string, GardenNoteDocument>; onLoad: (note: GardenNote) => Promise<void>; onSave: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean> }) {
+  useEffect(() => { if (editable && note) void onLoad(note); }, [editable, note?.slug]);
+  if (!note) return <div className="page"><Empty text="这篇笔记不存在，或尚未发布。" /></div>;
+  const key = `${note.type}/${note.slug}`; const document = documents[key]; const shown = document ? { ...note, ...document.frontmatter, body: document.body } : note;
+  return <article className="page note-page"><a className="back" href={`#/notes/${note.type}`}>← 返回{labels[language][note.type]}</a><p className="eyebrow">{labels[language][note.type]} / {formatDate(shown.updated)}</p>{editable && document ? <NoteEditor note={note} document={document} onSave={onSave} /> : <><h1>{shown.title}</h1><p className="lede">{shown.summary}</p><p className="tag-line">{shown.tags.map((tag) => <a key={tag} href={`#/tags/${tag}`}>#{tag}</a>)}</p><div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm]}>{shown.body}</ReactMarkdown></div><Related note={shown} /></>}</article>;
 }
+function Related({ note }: { note: GardenNote }) { const related = findRelatedNotes(note); return related.length ? <aside className="related"><b>相关笔记</b>{related.map((item) => <a key={item.slug} href={noteHref(item)}>{item.title}</a>)}</aside> : null; }
+function NoteEditor({ note, document, onSave }: { note: GardenNote; document: GardenNoteDocument; onSave: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean> }) { const [draft, setDraft] = useState(document); const [message, setMessage] = useState(""); useEffect(() => setDraft(document), [document]); const update = (field: keyof GardenNoteDocument["frontmatter"], value: string | string[]) => setDraft((current) => ({ ...current, frontmatter: { ...current.frontmatter, [field]: value } })); return <><div className="edit-status">本地编辑模式 · {message}</div><div className="edit-grid"><label>标题<input value={draft.frontmatter.title} onChange={(event) => update("title", event.target.value)} /></label><label>摘要<textarea value={draft.frontmatter.summary} onChange={(event) => update("summary", event.target.value)} /></label><label>状态<select value={draft.frontmatter.status} onChange={(event) => update("status", event.target.value)}>{["draft", "editing", "published", "archived"].map((status) => <option key={status}>{status}</option>)}</select></label><label>标签（逗号）<input value={draft.frontmatter.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} /></label></div><label className="body-editor">正文 Markdown<textarea value={draft.body} onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))} /></label><button className="primary" onClick={() => void onSave(note, draft).then((ok) => setMessage(ok ? "已保存" : "保存失败"))}>保存到本地文件</button><div className="markdown preview"><small>实时预览</small><ReactMarkdown remarkPlugins={[remarkGfm]}>{draft.body}</ReactMarkdown></div></>; }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return <div className="home-stat"><strong>{value}</strong><span>{label}</span></div>;
-}
+function PhotosIndex({ photos }: { photos: Photo[] }) { return <div className="page"><p className="eyebrow">PHOTOGRAPHS</p><h1>摄影</h1><p className="lede">从专题、地点与时间回看留下的画面。</p>{albums.length > 0 && <div className="album-list">{albums.map((album) => <a key={album.slug} href={`#/photos/${album.slug}`}><span>{album.title}</span><small>{album.location} · {photos.filter((photo) => photo.album === album.slug).length} 张</small></a>)}</div>}<div className="photo-grid">{photos.map((photo) => <PhotoCard key={`${photo.album}-${photo.slug}`} photo={photo} />)}</div>{!photos.length && <Empty text="暂无已发布的摄影作品。可在本地编辑模式上传第一张照片。" />}</div>; }
+function PhotoCard({ photo }: { photo: Photo }) { return <a className="photo-card" href={photoHref(photo)}><img src={photo.thumbnail} srcSet={`${photo.thumbnail} 720w, ${photo.image} 1600w`} sizes="(max-width: 720px) 100vw, 42vw" width={photo.width} height={photo.height} loading="lazy" alt={photo.alt} /><span><b>{photo.title}</b><small>{photo.location} · {formatDate(photo.date)}</small></span></a>; }
+function AlbumPage({ album, photos }: { album?: ReturnType<typeof findAlbum>; photos: Photo[] }) { if (!album) return <div className="page"><Empty text="这个摄影专题不存在。" /></div>; return <div className="page"><a className="back" href="#/photos">← 摄影</a><p className="eyebrow">PHOTO ESSAY</p><h1>{album.title}</h1><p className="lede">{album.description}</p><p className="muted">{album.location} · {formatDate(album.date)}</p><div className="photo-grid">{photos.map((photo) => <PhotoCard key={photo.slug} photo={photo} />)}</div>{!photos.length && <Empty text="这个专题还没有已发布作品。" />}</div>; }
+function PhotoPage({ photo, photos }: { photo?: Photo; photos: Photo[] }) { if (!photo) return <div className="page"><Empty text="这张照片不存在，或尚未发布。" /></div>; const index = photos.findIndex((item) => item.slug === photo.slug); return <article className="page photo-detail"><a className="back" href={`#/photos/${photo.album}`}>← 返回专题</a><img src={photo.image} width={photo.width} height={photo.height} alt={photo.alt} /><p className="eyebrow">{formatDate(photo.date)} · {photo.location}</p><h1>{photo.title}</h1><p className="lede">{photo.description}</p><p className="tag-line">{photo.tags.map((tag) => `#${tag}`).join(" ")}</p><div className="photo-neighbors">{photos[index - 1] && <a href={photoHref(photos[index - 1])}>← 上一张</a>}{photos[index + 1] && <a href={photoHref(photos[index + 1])}>下一张 →</a>}</div></article>; }
 
-function GardenSectionTitle({ eyebrow, title, href, linkLabel }: { eyebrow: string; title: string; href?: string; linkLabel?: string }) {
-  return <div className="garden-section-title"><div><span>{eyebrow}</span><h2>{title}</h2></div>{href && <a href={href}>{linkLabel} ↗</a>}</div>;
-}
-
-function NoteCard({ note, language, copy, compact = false }: { note: GardenNote; language: Language; copy: (typeof uiCopy)[Language]; compact?: boolean }) {
-  return <article className={`garden-note-card ${compact ? "is-compact" : ""}`}><div className="note-card-meta"><span className={`note-type type-${note.type}`}>{noteKindLabels[language][note.type]}</span><span>{formatDate(note.updated, language)}</span></div><h3><a href={noteHref(note)}>{note.title}</a></h3><p>{note.summary}</p><div className="note-card-foot"><span>{estimateReadTime(note.body)} {copy.readTime}</span><span className={`note-status ${note.status}`}>{note.status === "editing" ? copy.statusEditing : copy.statusPublished}</span></div></article>;
-}
-
-function ProjectPreview({ project, index }: { project: Project; index: number }) {
-  return <a className="project-preview" href="#/projects"><span className="project-preview-index">0{index + 1}</span><span><strong>{project.title}</strong><small>{project.tools}</small></span><span aria-hidden="true">↗</span></a>;
-}
-
-function NotesIndex({ category, language, copy, publicNotes }: { category?: NoteKind; language: Language; copy: (typeof uiCopy)[Language]; publicNotes: GardenNote[] }) {
-  const notesToShow = category ? publicNotes.filter((note) => note.type === category) : publicNotes;
-  const title = category ? noteKindLabels[language][category] : copy.notes;
-  const description = category ? noteKindDescriptions[language][category] : language === "zh" ? "这里记录问题、练习、阅读和仍在变化的判断。" : "Questions, experiments, readings, and judgments that are still changing.";
-  const noteKinds = Object.keys(noteKindLabels[language]) as NoteKind[];
-  return <div className="notes-page"><PageIntro eyebrow={category ? `0${noteKinds.indexOf(category) + 1}` : "GARDEN"} title={title} intro={description} />{!category && <div className="knowledge-directory" aria-label={language === "zh" ? "知识库分类" : "Knowledge categories"}>{noteKinds.map((kind, index) => <a key={kind} className={`knowledge-category-link category-${kind}`} href={`#/notes/${kind}`}><span className="knowledge-category-index">0{index + 1}</span><span><strong>{noteKindLabels[language][kind]}</strong><small>{noteKindDescriptions[language][kind]}</small></span><span className="knowledge-category-arrow" aria-hidden="true">↗</span></a>)}<a className="knowledge-topics-link" href="#/tags"><span>{copy.browseTopics}</span><span aria-hidden="true">↗</span></a></div>}<div className="notes-filter-row"><span>{String(notesToShow.length).padStart(2, "0")} {language === "zh" ? "篇笔记" : "notes"}</span><div>{category && <a className="filter-chip" href="#/notes">{copy.notes}</a>}</div></div><div className="notes-list">{notesToShow.map((note) => <NoteCard key={note.slug} note={note} language={language} copy={copy} />)}</div></div>;
-}
-
-function noteDocumentKey(note: GardenNote): string {
-  return `${note.type}/${note.slug}`;
-}
-
-function listFieldValue(items: string[]): string {
-  return items.join(", ");
-}
-
-function parseListField(value: string): string[] {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
-}
-
-function NoteEditField({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean }) {
-  return <label className="note-edit-field"><span>{label}</span>{multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} /> : <input value={value} onChange={(event) => onChange(event.target.value)} />}</label>;
-}
-
-function NoteDetail({ note, language, copy, publicNotes, editable, noteDocument, onLoadNoteDocument, onNoteDocumentChange }: { note?: GardenNote; language: Language; copy: (typeof uiCopy)[Language]; publicNotes: GardenNote[]; editable: boolean; noteDocument?: GardenNoteDocument; onLoadNoteDocument: (note: GardenNote) => void; onNoteDocumentChange: (note: GardenNote, document: GardenNoteDocument) => void }) {
-  useEffect(() => {
-    if (editable && note) onLoadNoteDocument(note);
-  }, [editable, note?.slug]);
-
-  if (!note) return <NotFound copy={copy} />;
-  const relatedNotes = findRelatedNotes(note);
-  const document = noteDocument;
-  const displayNote: GardenNote = document ? { ...note, ...document.frontmatter, body: document.body } : note;
-  const updateDocument = (next: GardenNoteDocument) => onNoteDocumentChange(note, next);
-  const updateFrontmatter = (field: keyof GardenNoteDocument["frontmatter"], value: string | string[]) => {
-    if (!document) return;
-    updateDocument({ ...document, frontmatter: { ...document.frontmatter, [field]: value } });
-  };
-
-  return <article className="note-detail"><a className="back-link" href={`#/notes/${note.type}`}>← {copy.back}</a>{editable && document ? <div className="note-edit-panel"><div className="note-edit-panel-head"><span>{language === "zh" ? "编辑 Markdown 笔记" : "Edit Markdown note"}</span><small>{note.type}/{note.slug}.md</small></div><div className="note-edit-grid"><NoteEditField label={language === "zh" ? "标题" : "Title"} value={document.frontmatter.title} onChange={(value) => updateFrontmatter("title", value)} /><NoteEditField label={language === "zh" ? "摘要" : "Summary"} value={document.frontmatter.summary} onChange={(value) => updateFrontmatter("summary", value)} multiline /><NoteEditField label={language === "zh" ? "创建日期" : "Date"} value={document.frontmatter.date} onChange={(value) => updateFrontmatter("date", value)} /><NoteEditField label={language === "zh" ? "更新时间" : "Updated"} value={document.frontmatter.updated} onChange={(value) => updateFrontmatter("updated", value)} /><label className="note-edit-field"><span>{language === "zh" ? "状态" : "Status"}</span><select value={document.frontmatter.status} onChange={(event) => updateFrontmatter("status", event.target.value)}><option value="draft">draft</option><option value="editing">editing</option><option value="published">published</option><option value="archived">archived</option></select></label><NoteEditField label={language === "zh" ? "标签（逗号分隔）" : "Tags (comma separated)"} value={listFieldValue(document.frontmatter.tags)} onChange={(value) => updateFrontmatter("tags", parseListField(value))} /><NoteEditField label={language === "zh" ? "关联笔记（逗号分隔 slug）" : "Related slugs (comma separated)"} value={listFieldValue(document.frontmatter.related)} onChange={(value) => updateFrontmatter("related", parseListField(value))} /><NoteEditField label={language === "zh" ? "来源" : "Source"} value={document.frontmatter.source ?? ""} onChange={(value) => updateFrontmatter("source", value)} /><NoteEditField label="sourceUrl" value={document.frontmatter.sourceUrl ?? ""} onChange={(value) => updateFrontmatter("sourceUrl", value)} /></div><label className="note-edit-body"><span>{language === "zh" ? "正文 Markdown" : "Markdown body"}</span><textarea value={document.body} onChange={(event) => updateDocument({ ...document, body: event.target.value })} /></label></div> : editable ? <p className="note-edit-loading">{language === "zh" ? "正在加载笔记文件..." : "Loading note file..."}</p> : <header className="note-detail-header"><div className="note-detail-type"><span className={`note-type type-${displayNote.type}`}>{noteKindLabels[language][displayNote.type]}</span><span>{displayNote.status === "editing" ? copy.statusEditing : copy.statusPublished}</span></div><h1>{displayNote.title}</h1><p className="note-detail-summary">{displayNote.summary}</p><div className="note-detail-meta"><span>{copy.updated} {formatDate(displayNote.updated, language)}</span><span>{estimateReadTime(displayNote.body)} {copy.readTime}</span>{displayNote.tags.map((tag) => <a key={tag} href={`#/tags/${encodeURIComponent(tag)}`}>#{tag}</a>)}</div></header>}<div className="note-detail-layout"><div className={editable && document ? "markdown-body note-edit-preview" : "markdown-body"}>{editable && document ? <><div className="note-edit-preview-label">{language === "zh" ? "实时预览" : "Live preview"}</div><ReactMarkdown remarkPlugins={[remarkGfm]}>{displayNote.body}</ReactMarkdown></> : <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayNote.body}</ReactMarkdown>}</div><aside className="note-detail-aside"><div><span className="aside-label">{copy.knowledgeMap}</span><a href={`#/notes/${note.type}`}>{noteKindLabels[language][note.type]}</a></div>{editable && document ? <><NoteEditField label={language === "zh" ? "参考来源" : "Source"} value={document.frontmatter.source ?? ""} onChange={(value) => updateFrontmatter("source", value)} /><NoteEditField label="sourceUrl" value={document.frontmatter.sourceUrl ?? ""} onChange={(value) => updateFrontmatter("sourceUrl", value)} /></> : displayNote.source && <div><span className="aside-label">{copy.source}</span>{displayNote.sourceUrl ? <a href={displayNote.sourceUrl} target="_blank" rel="noreferrer">{displayNote.source} ↗</a> : <span>{displayNote.source}</span>}</div>}{relatedNotes.length > 0 && <div><span className="aside-label">{copy.related}</span>{relatedNotes.map((related) => <a key={related.slug} href={noteHref(related)}>{related.title}</a>)}</div>}</aside></div>{publicNotes.length > 0 && <div className="note-detail-next"><span>{language === "zh" ? "继续探索" : "Keep exploring"}</span><a href="#/notes">{copy.viewAll} ↗</a></div>}</article>;
-}
-
-function TagsIndex({ language, copy }: { language: Language; copy: (typeof uiCopy)[Language] }) {
-  const tags = getAllTags();
-  return <div className="tags-page"><PageIntro eyebrow="MAP" title={copy.tags} intro={language === "zh" ? "从主题切入，找到不同笔记之间的连接。" : "Enter through a topic and find the connections between notes."} /><div className="tag-cloud">{tags.map((tag) => <a key={tag.name} className="tag-link" href={`#/tags/${encodeURIComponent(tag.name)}`}><span>#{tag.name}</span><small>{String(tag.count).padStart(2, "0")}</small></a>)}</div></div>;
-}
-
-function TagDetail({ tag, language, copy, publicNotes }: { tag: string; language: Language; copy: (typeof uiCopy)[Language]; publicNotes: GardenNote[] }) {
-  const matchingNotes = publicNotes.filter((note) => note.tags.includes(tag));
-  return <div className="notes-page"><a className="back-link" href="#/tags">← {copy.tags}</a><PageIntro eyebrow="TAG" title={`#${tag}`} intro={language === "zh" ? `围绕“${tag}”的笔记。` : `Notes connected to “${tag}”.`} /><div className="notes-list">{matchingNotes.length > 0 ? matchingNotes.map((note) => <NoteCard key={note.slug} note={note} language={language} copy={copy} />) : <p className="empty-state">{copy.noResults}</p>}</div></div>;
-}
-
-function InterestDetail({ interest, profile, language, editable, onListChange, copy }: { interest?: Interest; profile: ProfileContent; language: Language; editable: boolean; onListChange: ProfileSurfaceProps["onListChange"]; copy: (typeof uiCopy)[Language] }) {
-  if (!interest) return <NotFound copy={copy} />;
-  const interestIndex = profile.interests.findIndex((item) => item.slug === interest.slug);
-  const update = (field: keyof Omit<Interest, "slug">, value: string) => onListChange("interests", interestIndex, field, value);
-  return <article className="interest-detail"><a className="back-link" href="#/about">← {copy.interestBack}</a><header className="interest-detail-header"><span className="interest-detail-kicker">{copy.interestIndex} / 0{interestIndex + 1}</span><EditableText value={interest.title} onChange={(value) => update("title", value)} editable={editable} as="h1" /><EditableText value={interest.subtitle} onChange={(value) => update("subtitle", value)} editable={editable} as="p" className="interest-detail-subtitle" multiline /></header><div className="interest-detail-layout"><div className="interest-detail-main"><EditableText value={interest.description} onChange={(value) => update("description", value)} editable={editable} as="p" className="interest-detail-description" multiline /><div className="interest-detail-note"><span>{language === "zh" ? "持续记录" : "Ongoing notes"}</span><EditableText value={interest.details} onChange={(value) => update("details", value)} editable={editable} as="p" multiline /></div></div><aside className="interest-detail-aside"><span className="aside-label">{language === "zh" ? "关键词" : "Keywords"}</span><EditableText value={interest.keywords} onChange={(value) => update("keywords", value)} editable={editable} as="p" multiline /><div className="interest-detail-nav"><span>{language === "zh" ? "兴趣入口" : "Interest tabs"}</span>{profile.interests.map((item) => <a key={item.slug} className={item.slug === interest.slug ? "is-active" : ""} href={`#/interests/${encodeURIComponent(item.slug)}`}>{item.title} ↗</a>)}</div></aside></div></article>;
-}
-
-function PageIntro({ eyebrow, title, intro }: { eyebrow: string; title: string; intro: string }) {
-  return <header className="page-intro"><span>{eyebrow}</span><h1>{title}</h1><p>{intro}</p></header>;
-}
-
-function NotFound({ copy }: { copy: (typeof uiCopy)[Language] }) {
-  return <div className="not-found"><span>404 / NOTE</span><h1>{copy.notFound}</h1><p>{copy.notFoundLead}</p><a className="garden-button garden-button-dark" href="#/notes">{copy.back} ↗</a></div>;
-}
-
-function ProfileSurface({ section, content, ...props }: ProfileSurfaceProps & { section: "profile" | "projects" | "about" | "contact"; content: Content }) {
-  if (section === "projects") return <div className="profile-view"><ProjectsSection {...props} /></div>;
-  if (section === "contact") return <div className="profile-view"><ContactSection {...props} /></div>;
-  if (section === "about") return <div className="profile-view"><StorySection {...props} /><ExperienceSection {...props} /><InterestsOverview {...props} /></div>;
-  return <div className="profile-view"><HeroSection {...props} /><StorySection {...props} /><ProjectsSection {...props} /><SkillsSection {...props} /><ExperienceSection {...props} /><ContactSection {...props} /></div>;
-}
-
-function InterestsOverview({ profile, language, editable, onFieldChange }: ProfileSurfaceProps) {
-  return <section className="interests-overview"><div className="interests-overview-head"><div><span className="garden-section-eyebrow">{language === "zh" ? "兴趣入口" : "INTERESTS"}</span><EditableText value={profile.interestsTitle} onChange={(value) => onFieldChange("interestsTitle", value)} editable={editable} as="h2" /></div><EditableText value={profile.interestsIntro} onChange={(value) => onFieldChange("interestsIntro", value)} editable={editable} as="p" multiline /></div><div className="interest-tab-grid">{profile.interests.map((interest, index) => <a key={interest.slug} className="interest-tab" href={`#/interests/${encodeURIComponent(interest.slug)}`}><span>0{index + 1}</span><strong>{interest.title}</strong><small>{interest.subtitle}</small><em aria-hidden="true">↗</em></a>)}</div></section>;
-}
+function NewNote() { const [type, setType] = useState<NoteKind>("thinking"); const [slug, setSlug] = useState(""); const [title, setTitle] = useState(""); const [message, setMessage] = useState(""); async function submit(event: React.FormEvent) { event.preventDefault(); const response = await fetch("/api/notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, slug, title }) }); if (!response.ok) return setMessage(await response.text()); location.hash = `#/notes/${type}/${slug}`; } return <form className="page form-page" onSubmit={submit}><p className="eyebrow">LOCAL EDIT</p><h1>新建笔记</h1><label>分类<select value={type} onChange={(event) => setType(event.target.value as NoteKind)}>{kinds.map((kind) => <option key={kind} value={kind}>{labels.zh[kind]}</option>)}</select></label><label>Slug（小写 kebab-case）<input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={slug} onChange={(event) => setSlug(event.target.value)} /></label><label>标题<input required value={title} onChange={(event) => setTitle(event.target.value)} /></label><button className="primary">创建草稿</button><p className="error">{message}</p></form>; }
+function NewPhoto() { const [message, setMessage] = useState(""); async function submit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); const response = await fetch("/api/photos", { method: "POST", body: new FormData(event.currentTarget) }); if (!response.ok) return setMessage(await response.text()); const result = await response.json() as { album: string; slug: string }; location.hash = `#/photos/${result.album}/${result.slug}`; } return <form className="page form-page" onSubmit={submit}><p className="eyebrow">LOCAL EDIT</p><h1>上传照片</h1><label>专题 slug<input required name="album" placeholder="例如 shanghai-spring" /></label><label>专题标题<input required name="albumTitle" /></label><label>专题简介<textarea required name="albumDescription" /></label><label>照片 slug<input required name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" /></label><label>照片标题<input required name="title" /></label><label>拍摄日期<input required name="date" type="date" /></label><label>地点<input required name="location" /></label><label>标签（逗号）<input name="tags" /></label><label>说明<textarea name="description" /></label><label>图片替代文本<input required name="alt" /></label><label>图片文件<input required name="image" accept="image/jpeg,image/png,image/webp" type="file" /></label><button className="primary">上传为草稿</button><p className="error">{message}</p></form>; }
