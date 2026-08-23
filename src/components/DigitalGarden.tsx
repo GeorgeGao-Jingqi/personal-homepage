@@ -12,7 +12,7 @@ type Route =
 
 const kinds: NoteKind[] = ["thinking", "learning", "reading"];
 const labels: Record<Language, Record<NoteKind, string>> = {
-  zh: { thinking: "思考", learning: "学习", reading: "阅读" },
+  zh: { thinking: "Thinking", learning: "Learning", reading: "Reading" },
   en: { thinking: "Thinking", learning: "Learning", reading: "Reading" },
 };
 
@@ -31,11 +31,9 @@ function parseRoute(hash: string): Route {
   return { kind: "home" };
 }
 
-const editorRoute = new URLSearchParams(window.location.search).get("edit") === "1";
-const gardenHref = (path = "") => `${import.meta.env.BASE_URL}garden/${path}`;
-const notesHref = (kind?: NoteKind) => editorRoute ? `#/notes${kind ? `/${kind}` : ""}` : gardenHref(kind ? `${kind}/` : "");
-const noteHref = (note: GardenNote) => editorRoute ? `#/notes/${note.type}/${encodeURIComponent(note.slug)}` : gardenHref(`${note.type}/${encodeURIComponent(note.slug)}.html`);
-const tagHref = (tag: string) => editorRoute ? `#/tags/${encodeURIComponent(tag)}` : gardenHref(`tags/${encodeURIComponent(tag)}.html`);
+const notesHref = (kind?: NoteKind) => `#/notes${kind ? `/${kind}` : ""}`;
+const noteHref = (note: GardenNote) => `#/notes/${note.type}/${encodeURIComponent(note.slug)}`;
+const tagHref = (tag: string) => `#/tags/${encodeURIComponent(tag)}`;
 const photoHref = (photo: Photo) => `#/photos/${photo.album}/${photo.slug}`;
 const formatDate = (value: string) => value.replace(/-/g, ".");
 
@@ -55,7 +53,7 @@ export function DigitalGarden({ content, editable, theme, onThemeToggle, documen
   return <div className="garden-app">
     <aside className="garden-sidebar">
       <a className="garden-brand" href="#/"><span>GG</span><strong>{copy.title}</strong></a>
-      <nav aria-label="主导航"><a href="#/" className={route.kind === "home" ? "active" : ""}>地图</a><a href={notesHref()} className={route.kind === "notes" || route.kind === "note" || route.kind === "tags" || route.kind === "tag" ? "active" : ""}>知识库</a>{kinds.map((kind) => <a key={kind} className="nav-indent" href={notesHref(kind)}>{labels[language][kind]} <small>{visibleNotes.filter((note) => note.type === kind).length}</small></a>)}<a href={editorRoute ? "#/tags" : gardenHref("tags/")}>主题</a><a href="#/photos" className={route.kind === "photos" || route.kind === "album" || route.kind === "photo" ? "active" : ""}>摄影 <small>{visiblePhotos.length}</small></a></nav>
+      <nav aria-label="主导航"><a href="#/" className={route.kind === "home" ? "active" : ""}>地图</a><a href={notesHref()} className={route.kind === "notes" || route.kind === "note" || route.kind === "tags" || route.kind === "tag" ? "active" : ""}>知识库</a>{kinds.map((kind) => <a key={kind} className="nav-indent" href={notesHref(kind)}>{labels[language][kind]} <small>{visibleNotes.filter((note) => note.type === kind).length}</small></a>)}<a href="#/photos" className={route.kind === "photos" || route.kind === "album" || route.kind === "photo" ? "active" : ""}>摄影 <small>{visiblePhotos.length}</small></a></nav>
       {editable && <div className="editor-actions"><a href="#/new-note">+ 新建笔记</a><a href="#/new-photo">+ 上传照片</a></div>}
       <div className="sidebar-bottom"><button onClick={onThemeToggle} aria-label="切换亮暗主题">{theme === "light" ? "墨" : "纸"}</button><button onClick={() => setLanguage((current) => current === "zh" ? "en" : "zh")}>{language === "zh" ? "EN" : "中"}</button><span>{editable ? "LOCAL EDIT" : "READ ONLY"}</span></div>
     </aside>
@@ -94,7 +92,7 @@ function NotePage({ note, editable, language, documents, onLoad, onSave }: { not
   useEffect(() => { if (editable && note) void onLoad(note); }, [editable, note?.slug]);
   if (!note) return <div className="page"><Empty text="这篇笔记不存在，或尚未发布。" /></div>;
   const key = `${note.type}/${note.slug}`; const document = documents[key]; const shown = document ? { ...note, ...document.frontmatter, body: document.body } : note;
-  return <article className="page note-page"><a className="back" href={`#/notes/${note.type}`}>← 返回{labels[language][note.type]}</a><p className="eyebrow">{labels[language][note.type]} / {formatDate(shown.updated)}</p>{editable && document ? <NoteEditor note={note} document={document} onSave={onSave} /> : <><h1>{shown.title}</h1><p className="lede">{shown.summary}</p><p className="tag-line">{shown.tags.map((tag) => <a key={tag} href={`#/tags/${tag}`}>#{tag}</a>)}</p><div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm]}>{shown.body}</ReactMarkdown></div><Related note={shown} /></>}</article>;
+  return <article className="page note-page"><a className="back" href={`#/notes/${note.type}`}>← 返回{labels[language][note.type]}</a><p className="eyebrow">{labels[language][note.type]} / {formatDate(shown.updated)}</p>{editable && document ? <NoteEditor note={note} document={document} onSave={onSave} /> : <><h1>{shown.title}</h1><p className="lede">{shown.summary}</p><p className="tag-line">{shown.tags.map((tag) => <a key={tag} href={tagHref(tag)}>#{tag}</a>)}</p><div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm]}>{shown.body}</ReactMarkdown></div><Related note={shown} /></>}</article>;
 }
 function Related({ note }: { note: GardenNote }) { const related = findRelatedNotes(note); return related.length ? <aside className="related"><b>相关笔记</b>{related.map((item) => <a key={item.slug} href={noteHref(item)}>{item.title}</a>)}</aside> : null; }
 function NoteEditor({ note, document, onSave }: { note: GardenNote; document: GardenNoteDocument; onSave: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean> }) { const [draft, setDraft] = useState(document); const [message, setMessage] = useState(""); useEffect(() => setDraft(document), [document]); const update = (field: keyof GardenNoteDocument["frontmatter"], value: string | string[]) => setDraft((current) => ({ ...current, frontmatter: { ...current.frontmatter, [field]: value } })); return <><div className="edit-status">本地编辑模式 · {message}</div><div className="edit-grid"><label>标题<input value={draft.frontmatter.title} onChange={(event) => update("title", event.target.value)} /></label><label>摘要<textarea value={draft.frontmatter.summary} onChange={(event) => update("summary", event.target.value)} /></label><label>状态<select value={draft.frontmatter.status} onChange={(event) => update("status", event.target.value)}>{["draft", "editing", "published", "archived"].map((status) => <option key={status}>{status}</option>)}</select></label><label>标签（逗号）<input value={draft.frontmatter.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} /></label></div><label className="body-editor">正文 Markdown<textarea value={draft.body} onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))} /></label><button className="primary" onClick={() => void onSave(note, draft).then((ok) => setMessage(ok ? "已保存" : "保存失败"))}>保存到本地文件</button><div className="markdown preview"><small>实时预览</small><ReactMarkdown remarkPlugins={[remarkGfm]}>{draft.body}</ReactMarkdown></div></>; }
