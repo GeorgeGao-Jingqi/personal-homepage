@@ -17,6 +17,30 @@
 - 图片存放于 `public/photos/<album>/<slug>/`。上传流程生成 `image.webp` 与 `thumb.webp`；列表页面必须使用缩略图和 `srcset`，所有图片都必须有准确的 `alt`。
 - 不要虚构公开笔记、摄影作品、拍摄地点或相机参数。没有真实内容时保留空状态。
 
+## Obsidian 到 Git 发布流程
+
+- 当用户明确说“发布笔记”“同步 Obsidian 到主页”“提交笔记”或表达同等意图时，执行本节流程：先检查并展示待发布的笔记差异，再只提交确认范围内的 `content/notes/` 文件，推送到 `main`，最后报告提交、远程分支和 GitHub Pages 构建状态。不要把本地未确认的 `AGENTS.md`、`content/.obsidian/` 或其他无关文件带入提交。
+- Obsidian 直接打开 `content/notes/` 作为 Vault；不要把 `quartz/` 子模块目录作为日常写作目录。
+- 在 `thinking/`、`learning/` 或 `reading/` 下新建 Markdown 文件，并保留完整 frontmatter。准备公开时设置 `status: published` 和 `publish: true`；草稿、编辑中或归档内容使用 `publish: false`。
+- Obsidian 本身只负责修改本地文件。Obsidian Sync 不会触发 GitHub Pages，必须在项目根目录执行 Git 操作：
+
+  ```bash
+  cd "/Users/gaojingqi/Documents/ChatGPT/个人主页"
+  git status --short
+  git diff -- content/notes
+  git switch main
+  git pull --ff-only origin main
+  git add content/notes
+  git diff --cached --stat
+  git commit -m "docs: update notes"
+  git push origin main
+  ```
+
+- 推送到 `main` 后，`.github/workflows/pages.yml` 会自动安装依赖、运行 React + Quartz 构建并发布 Pages；不需要手动运行 Quartz 或上传 HTML 文件。
+- `git add content/notes` 只用于确认要发布整个笔记目录的情况；若只发布单篇笔记，改为 `git add content/notes/<category>/<slug>.md`。暂存后必须检查 `git diff --cached`，确认没有草稿、`.obsidian/` 配置或无关文件。若只想保存草稿，也可以提交，但必须保持 `publish: false`。
+- 如果已有未提交改动导致无法切换 `main`，不要使用强制切换、重置或清理；先保留现场并向用户报告，等待确认后再继续。
+- 如需在本地预览完整构建，首次初始化子模块后运行 `git submodule update --init --recursive` 和 `npm --prefix quartz ci`；日常只编辑 Markdown 和执行 Git 提交即可。
+
 ## 视觉规则
 
 - 当前字体保持 Inter / 系统中文无衬线字体栈，除非用户明确要求，不要更换或引入字体文件。
