@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentPropsWithoutRef } from "react";
+import { MarkdownHooks } from "react-markdown";
+import rehypePrettyCode from "rehype-pretty-code";
 import remarkGfm from "remark-gfm";
+import type { PluggableList } from "unified";
 import { albums, findAlbum, findPhoto, getPublicPhotos, photos, photosForAlbum } from "../photos";
 import { findNote, findRelatedNotes, getAllTags, getPublicNotes, notes } from "../notes";
 import type { GardenNote, GardenNoteDocument, Language, NoteKind, Photo, SiteContent } from "../types";
@@ -36,6 +39,50 @@ const noteHref = (note: GardenNote) => `#/notes/${note.type}/${encodeURIComponen
 const tagHref = (tag: string) => `#/tags/${encodeURIComponent(tag)}`;
 const photoHref = (photo: Photo) => `#/photos/${photo.album}/${photo.slug}`;
 const formatDate = (value: string) => value.replace(/-/g, ".");
+
+const prettyCodeOptions = {
+  theme: { light: "github-light", dark: "github-dark" },
+  keepBackground: false,
+};
+const prettyCodePlugins: PluggableList = [[rehypePrettyCode, prettyCodeOptions]];
+const languageNames: Record<string, string> = {
+  bash: "Shell", css: "CSS", html: "HTML", javascript: "JavaScript", js: "JavaScript",
+  json: "JSON", markdown: "Markdown", md: "Markdown", python: "Python", py: "Python",
+  sql: "SQL", typescript: "TypeScript", ts: "TypeScript", yaml: "YAML", yml: "YAML",
+};
+
+function languageLabel(language: string) {
+  const normalized = language.trim().toLowerCase();
+  return languageNames[normalized] ?? (normalized ? normalized[0].toUpperCase() + normalized.slice(1) : "Code");
+}
+
+function MarkdownPre(props: ComponentPropsWithoutRef<"pre"> & { "data-language"?: string }) {
+  const preRef = useRef<HTMLPreElement>(null);
+  const [copied, setCopied] = useState(false);
+  const language = typeof props["data-language"] === "string" ? props["data-language"] : "";
+  const { children, ...preProps } = props;
+
+  async function copyCode() {
+    const text = preRef.current?.innerText ?? "";
+    if (!text || typeof navigator === "undefined" || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return <div className="code-block">
+    <div className="code-toolbar"><span>{languageLabel(language)}</span><button type="button" onClick={() => void copyCode()} aria-label={`复制${languageLabel(language)}代码`}>{copied ? "已复制" : "复制"}</button></div>
+    <pre {...preProps} ref={preRef}>{children}</pre>
+  </div>;
+}
+
+function MarkdownBody({ children }: { children: string }) {
+  return <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={prettyCodePlugins} components={{ pre: MarkdownPre }} fallback={<p className="markdown-loading">正在排版…</p>}>{children}</MarkdownHooks>;
+}
 
 export function DigitalGarden({ content, editable, theme, onThemeToggle, documents, onLoadNote, onSaveNote }: {
   content: SiteContent; editable: boolean; theme: "light" | "dark"; onThemeToggle: () => void;
@@ -92,10 +139,10 @@ function NotePage({ note, editable, language, documents, onLoad, onSave }: { not
   useEffect(() => { if (editable && note) void onLoad(note); }, [editable, note?.slug]);
   if (!note) return <div className="page"><Empty text="这篇笔记不存在，或尚未发布。" /></div>;
   const key = `${note.type}/${note.slug}`; const document = documents[key]; const shown = document ? { ...note, ...document.frontmatter, body: document.body } : note;
-  return <article className="page note-page"><a className="back" href={`#/notes/${note.type}`}>← 返回{labels[language][note.type]}</a><p className="eyebrow">{labels[language][note.type]} / {formatDate(shown.updated)}</p>{editable && document ? <NoteEditor note={note} document={document} onSave={onSave} /> : <><h1>{shown.title}</h1><p className="lede">{shown.summary}</p><p className="tag-line">{shown.tags.map((tag) => <a key={tag} href={tagHref(tag)}>#{tag}</a>)}</p><div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm]}>{shown.body}</ReactMarkdown></div><Related note={shown} /></>}</article>;
+  return <article className="page note-page"><a className="back" href={`#/notes/${note.type}`}>← 返回{labels[language][note.type]}</a><p className="eyebrow">{labels[language][note.type]} / {formatDate(shown.updated)}</p>{editable && document ? <NoteEditor note={note} document={document} onSave={onSave} /> : <><h1>{shown.title}</h1><p className="lede">{shown.summary}</p><p className="tag-line">{shown.tags.map((tag) => <a key={tag} href={tagHref(tag)}>#{tag}</a>)}</p><div className="markdown"><MarkdownBody>{shown.body}</MarkdownBody></div><Related note={shown} /></>}</article>;
 }
 function Related({ note }: { note: GardenNote }) { const related = findRelatedNotes(note); return related.length ? <aside className="related"><b>相关笔记</b>{related.map((item) => <a key={item.slug} href={noteHref(item)}>{item.title}</a>)}</aside> : null; }
-function NoteEditor({ note, document, onSave }: { note: GardenNote; document: GardenNoteDocument; onSave: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean> }) { const [draft, setDraft] = useState(document); const [message, setMessage] = useState(""); useEffect(() => setDraft(document), [document]); const update = (field: keyof GardenNoteDocument["frontmatter"], value: string | string[]) => setDraft((current) => ({ ...current, frontmatter: { ...current.frontmatter, [field]: value } })); return <><div className="edit-status">本地编辑模式 · {message}</div><div className="edit-grid"><label>标题<input value={draft.frontmatter.title} onChange={(event) => update("title", event.target.value)} /></label><label>摘要<textarea value={draft.frontmatter.summary} onChange={(event) => update("summary", event.target.value)} /></label><label>状态<select value={draft.frontmatter.status} onChange={(event) => update("status", event.target.value)}>{["draft", "editing", "published", "archived"].map((status) => <option key={status}>{status}</option>)}</select></label><label>标签（逗号）<input value={draft.frontmatter.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} /></label></div><label className="body-editor">正文 Markdown<textarea value={draft.body} onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))} /></label><button className="primary" onClick={() => void onSave(note, draft).then((ok) => setMessage(ok ? "已保存" : "保存失败"))}>保存到本地文件</button><div className="markdown preview"><small>实时预览</small><ReactMarkdown remarkPlugins={[remarkGfm]}>{draft.body}</ReactMarkdown></div></>; }
+function NoteEditor({ note, document, onSave }: { note: GardenNote; document: GardenNoteDocument; onSave: (note: GardenNote, document: GardenNoteDocument) => Promise<boolean> }) { const [draft, setDraft] = useState(document); const [message, setMessage] = useState(""); useEffect(() => setDraft(document), [document]); const update = (field: keyof GardenNoteDocument["frontmatter"], value: string | string[]) => setDraft((current) => ({ ...current, frontmatter: { ...current.frontmatter, [field]: value } })); return <><div className="edit-status">本地编辑模式 · {message}</div><div className="edit-grid"><label>标题<input value={draft.frontmatter.title} onChange={(event) => update("title", event.target.value)} /></label><label>摘要<textarea value={draft.frontmatter.summary} onChange={(event) => update("summary", event.target.value)} /></label><label>状态<select value={draft.frontmatter.status} onChange={(event) => update("status", event.target.value)}>{["draft", "editing", "published", "archived"].map((status) => <option key={status}>{status}</option>)}</select></label><label>标签（逗号）<input value={draft.frontmatter.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} /></label></div><label className="body-editor">正文 Markdown<textarea value={draft.body} onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))} /></label><button className="primary" onClick={() => void onSave(note, draft).then((ok) => setMessage(ok ? "已保存" : "保存失败"))}>保存到本地文件</button><div className="markdown preview"><small>实时预览</small><MarkdownBody>{draft.body}</MarkdownBody></div></>; }
 
 function PhotosIndex({ photos }: { photos: Photo[] }) { return <div className="page"><p className="eyebrow">PHOTOGRAPHS</p><h1>摄影</h1><p className="lede">从专题、地点与时间回看留下的画面。</p>{albums.length > 0 && <div className="album-list">{albums.map((album) => <a key={album.slug} href={`#/photos/${album.slug}`}><span>{album.title}</span><small>{album.location} · {photos.filter((photo) => photo.album === album.slug).length} 张</small></a>)}</div>}<div className="photo-grid">{photos.map((photo) => <PhotoCard key={`${photo.album}-${photo.slug}`} photo={photo} />)}</div>{!photos.length && <Empty text="暂无已发布的摄影作品。可在本地编辑模式上传第一张照片。" />}</div>; }
 function PhotoCard({ photo }: { photo: Photo }) { return <a className="photo-card" href={photoHref(photo)}><img src={photo.thumbnail} srcSet={`${photo.thumbnail} 720w, ${photo.image} 1600w`} sizes="(max-width: 720px) 100vw, 42vw" width={photo.width} height={photo.height} loading="lazy" alt={photo.alt} /><span><b>{photo.title}</b><small>{photo.location} · {formatDate(photo.date)}</small></span></a>; }
