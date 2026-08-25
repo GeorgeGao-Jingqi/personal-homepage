@@ -13,7 +13,11 @@ related:
   - sql-window-functions-log
 ---
 
+## 清洗流程
+
 我把清洗过程拆成三个阶段：先观察，再处理，最后复核。
+
+## 清洗代码
 
 ```python
 import pandas as pd
@@ -24,7 +28,11 @@ clean = raw.drop_duplicates().copy()
 clean["amount"] = pd.to_numeric(clean["amount"], errors="coerce")
 ```
 
+## 处理后的业务语义
+
 真正容易被忽略的是“处理后是否仍然符合业务语义”。例如把缺失金额直接填成 0，虽然方便计算，却可能把“未知”误读成“没有发生”。
+
+## 复核清单
 
 我的复核清单目前包括：
 
